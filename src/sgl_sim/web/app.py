@@ -59,6 +59,14 @@ from sgl_sim.targets import (
     compute_sgl_deployment_vector,
     list_curated_targets,
 )
+from sgl_sim.triage import (
+    compute_motion_blur,
+    score_exoplanet_candidate,
+    get_ranked_catalog,
+    generate_sky_efficiency_map,
+    check_mission_coalignment,
+    CATALOG_12_CANDIDATES,
+)
 from sgl_sim.exporters import (
     build_simulation_fits_hdulist,
     export_fits,
@@ -318,6 +326,124 @@ def api_target_ephemeris():
             cruise_vel_au_yr=cruise_vel_au_yr,
         )
         return jsonify({"status": "success", "data": ephem})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 400
+
+
+@app.route("/api/ranking", methods=["GET"])
+def api_ranking():
+    """Return ranked exoplanet catalog evaluated for SGL mission feasibility."""
+    try:
+        z_rec_au = float(request.args.get("z_rec_au", 650.0))
+        ranked = get_ranked_catalog(z_rec_au=z_rec_au)
+        return jsonify({"status": "success", "data": ranked})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 400
+
+
+@app.route("/api/evaluate_candidate", methods=["POST"])
+def api_evaluate_candidate():
+    """Score a newly discovered or custom exoplanet candidate and check mission co-alignment."""
+    try:
+        data = request.get_json(force=True, silent=True) or {}
+        name = data.get("name", "Custom Discovery")
+        ra_deg = float(data.get("ra_deg", 0.0))
+        dec_deg = float(data.get("dec_deg", 0.0))
+        dist_pc = float(data.get("dist_pc", 10.0))
+        radius_earth = float(data.get("radius_earth", 1.0))
+        rot_period_hrs = float(data.get("rot_period_hrs", 24.0))
+        tidally_locked = bool(data.get("tidally_locked", False))
+        host_star_mag = float(data.get("host_star_mag", 11.0))
+        proper_motion_mas_yr = float(data.get("proper_motion_mas_yr", 100.0))
+        z_rec_au = float(data.get("z_rec_au", 650.0))
+
+        score_res = score_exoplanet_candidate(
+            name=name,
+            ra_deg=ra_deg,
+            dec_deg=dec_deg,
+            dist_pc=dist_pc,
+            radius_earth=radius_earth,
+            rot_period_hrs=rot_period_hrs,
+            tidally_locked=tidally_locked,
+            host_star_mag=host_star_mag,
+            proper_motion_mas_yr=proper_motion_mas_yr,
+            z_rec_au=z_rec_au,
+        )
+
+        coalignment_res = check_mission_coalignment(
+            active_missions=CATALOG_12_CANDIDATES,
+            new_target_ra=ra_deg,
+            new_target_dec=dec_deg,
+            max_deflection_deg=3.0,
+        )
+
+        return jsonify({
+            "status": "success",
+            "candidate": score_res,
+            "coalignment": coalignment_res,
+        })
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 400
+
+
+@app.route("/api/swarm_blur_sim", methods=["POST"])
+def api_swarm_blur_sim():
+    """Simulate rotational motion blur comparing single-spacecraft vs swarm."""
+    try:
+        data = request.get_json(force=True, silent=True) or {}
+        image_diameter_km = float(data.get("image_diameter_km", 4.2))
+        grid_pixels = int(data.get("grid_pixels", 32))
+        planet_rot_period_hours = float(data.get("planet_rot_period_hours", 24.0))
+        tidally_locked = bool(data.get("tidally_locked", False))
+        num_satellites = int(data.get("num_satellites", 8))
+        integration_time_per_pixel_s = float(data.get("integration_time_per_pixel_s", 10.0))
+        max_lateral_accel_m_s2 = float(data.get("max_lateral_accel_m_s2", 1e-4))
+        v_drift_m_s = float(data.get("v_drift_m_s", 15.0))
+        snr = float(data.get("snr", 25.0))
+
+        # Single craft simulation (N=1)
+        single_res = compute_motion_blur(
+            image_diameter_km=image_diameter_km,
+            grid_pixels=grid_pixels,
+            planet_rot_period_hours=planet_rot_period_hours,
+            tidally_locked=tidally_locked,
+            num_satellites=1,
+            integration_time_per_pixel_s=integration_time_per_pixel_s,
+            max_lateral_accel_m_s2=max_lateral_accel_m_s2,
+            v_drift_m_s=v_drift_m_s,
+            snr=snr,
+        )
+
+        # Swarm simulation (N=num_satellites)
+        swarm_res = compute_motion_blur(
+            image_diameter_km=image_diameter_km,
+            grid_pixels=grid_pixels,
+            planet_rot_period_hours=planet_rot_period_hours,
+            tidally_locked=tidally_locked,
+            num_satellites=num_satellites,
+            integration_time_per_pixel_s=integration_time_per_pixel_s,
+            max_lateral_accel_m_s2=max_lateral_accel_m_s2,
+            v_drift_m_s=v_drift_m_s,
+            snr=snr,
+        )
+
+        return jsonify({
+            "status": "success",
+            "single": single_res,
+            "swarm": swarm_res,
+        })
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 400
+
+
+@app.route("/api/sky_efficiency", methods=["GET"])
+def api_sky_efficiency():
+    """Return all-sky solar lens efficiency map grid and candidate markers."""
+    try:
+        n_ra = int(request.args.get("n_ra", 72))
+        n_dec = int(request.args.get("n_dec", 36))
+        data = generate_sky_efficiency_map(n_ra=n_ra, n_dec=n_dec)
+        return jsonify({"status": "success", "data": data})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 400
 

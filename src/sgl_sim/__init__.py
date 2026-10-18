@@ -56,6 +56,14 @@ from sgl_sim.targets import (
     list_curated_targets,
     TOP_15_SGL_TARGETS,
 )
+from sgl_sim.triage import (
+    compute_motion_blur,
+    score_exoplanet_candidate,
+    get_ranked_catalog,
+    generate_sky_efficiency_map,
+    check_mission_coalignment,
+    CATALOG_12_CANDIDATES,
+)
 from sgl_sim.exporters import (
     build_simulation_fits_hdulist,
     export_fits,
@@ -98,6 +106,12 @@ __all__ = [
     "compute_sgl_deployment_vector",
     "list_curated_targets",
     "TOP_15_SGL_TARGETS",
+    "compute_motion_blur",
+    "score_exoplanet_candidate",
+    "get_ranked_catalog",
+    "generate_sky_efficiency_map",
+    "check_mission_coalignment",
+    "CATALOG_12_CANDIDATES",
     "build_simulation_fits_hdulist",
     "export_fits",
     "export_csv",

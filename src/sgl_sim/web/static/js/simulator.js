@@ -1199,9 +1199,413 @@
     }
   });
 
-  // Initial simulation run and target telemetry on page load
+  // ==========================================
+  // PANEL 6: Target Triage, Sky Efficiency & Swarm Blur
+  // ==========================================
+  const cvSkyMap = document.getElementById('canvas-sky-map');
+  const ctxSkyMap = cvSkyMap ? cvSkyMap.getContext('2d') : null;
+  const skyMapHoverInfo = document.getElementById('sky-map-hover-info');
+  let cachedSkyMapData = null;
+
+  async function loadSkyEfficiencyMap() {
+    if (!ctxSkyMap) return;
+    try {
+      const res = await fetch('/api/sky_efficiency?n_ra=72&n_dec=36');
+      const json = await res.json();
+      if (json.status !== 'success') return;
+      cachedSkyMapData = json.data;
+      renderSkyEfficiencyMap(cachedSkyMapData);
+    } catch (err) {
+      console.error('Sky efficiency map error:', err);
+    }
+  }
+
+  function renderSkyEfficiencyMap(data) {
+    if (!ctxSkyMap || !data) return;
+    const w = cvSkyMap.width;
+    const h = cvSkyMap.height;
+    ctxSkyMap.clearRect(0, 0, w, h);
+
+    const nDec = data.n_dec;
+    const nRa = data.n_ra;
+    const eff = data.efficiency_matrix;
+
+    const cellW = w / nRa;
+    const cellH = h / nDec;
+
+    for (let r = 0; r < nDec; r++) {
+      const canvasRow = (nDec - 1) - r;
+      for (let c = 0; c < nRa; c++) {
+        const val = eff[r][c];
+        let red, green, blue;
+        if (val < 0.35) {
+          const t = val / 0.35;
+          red = Math.floor(6 + t * 15);
+          green = Math.floor(12 + t * 40);
+          blue = Math.floor(35 + t * 120);
+        } else if (val < 0.7) {
+          const t = (val - 0.35) / 0.35;
+          red = Math.floor(21 + t * 15);
+          green = Math.floor(52 + t * 120);
+          blue = Math.floor(155 + t * 40);
+        } else {
+          const t = (val - 0.7) / 0.3;
+          red = Math.floor(36 + t * 60);
+          green = Math.floor(172 + t * 50);
+          blue = Math.floor(195 - t * 80);
+        }
+
+        ctxSkyMap.fillStyle = `rgb(${red}, ${green}, ${blue})`;
+        ctxSkyMap.fillRect(c * cellW, canvasRow * cellH, cellW + 0.5, cellH + 0.5);
+      }
+    }
+
+    // Celestial Equator (Dec = 0)
+    ctxSkyMap.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+    ctxSkyMap.lineWidth = 1;
+    const cy = h / 2;
+    ctxSkyMap.beginPath();
+    ctxSkyMap.moveTo(0, cy);
+    ctxSkyMap.lineTo(w, cy);
+    ctxSkyMap.stroke();
+
+    // Ecliptic Equator indication
+    ctxSkyMap.setLineDash([4, 4]);
+    ctxSkyMap.strokeStyle = 'rgba(250, 204, 21, 0.45)';
+    ctxSkyMap.beginPath();
+    for (let c = 0; c <= w; c += 4) {
+      const raRad = ((c / w) * 360.0) * (Math.PI / 180.0);
+      const decEclDeg = 23.44 * Math.sin(raRad);
+      const py = (1.0 - (decEclDeg + 90.0) / 180.0) * h;
+      if (c === 0) ctxSkyMap.moveTo(c, py);
+      else ctxSkyMap.lineTo(c, py);
+    }
+    ctxSkyMap.stroke();
+    ctxSkyMap.setLineDash([]);
+
+    // Candidate markers (✦)
+    const candidates = data.candidates || [];
+    candidates.forEach((cand) => {
+      const px = (cand.tel_ra / 360.0) * w;
+      const py = (1.0 - (cand.tel_dec + 90.0) / 180.0) * h;
+
+      ctxSkyMap.fillStyle = '#facc15';
+      ctxSkyMap.font = '12px sans-serif';
+      ctxSkyMap.textAlign = 'center';
+      ctxSkyMap.textBaseline = 'middle';
+      ctxSkyMap.fillText('✦', px, py);
+
+      ctxSkyMap.fillStyle = 'rgba(241, 245, 249, 0.85)';
+      ctxSkyMap.font = '9px monospace';
+      ctxSkyMap.fillText(cand.name, px, py - 9);
+    });
+  }
+
+  if (cvSkyMap) {
+    cvSkyMap.addEventListener('mousemove', (e) => {
+      if (!cachedSkyMapData) return;
+      const rect = cvSkyMap.getBoundingClientRect();
+      const scaleX = cvSkyMap.width / rect.width;
+      const scaleY = cvSkyMap.height / rect.height;
+      const mx = (e.clientX - rect.left) * scaleX;
+      const my = (e.clientY - rect.top) * scaleY;
+
+      const ra = (mx / cvSkyMap.width) * 360.0;
+      const dec = 90.0 - (my / cvSkyMap.height) * 180.0;
+
+      let hoveredCand = null;
+      for (const cand of (cachedSkyMapData.candidates || [])) {
+        const cx = (cand.tel_ra / 360.0) * cvSkyMap.width;
+        const cy = (1.0 - (cand.tel_dec + 90.0) / 180.0) * cvSkyMap.height;
+        const dist = Math.hypot(mx - cx, my - cy);
+        if (dist <= 12) {
+          hoveredCand = cand;
+          break;
+        }
+      }
+
+      if (hoveredCand && skyMapHoverInfo) {
+        skyMapHoverInfo.innerHTML = `<strong>${hoveredCand.name}</strong> | Target: (${hoveredCand.target_ra.toFixed(1)}°, ${hoveredCand.target_dec.toFixed(1)}°) | Antipode: (${hoveredCand.tel_ra.toFixed(1)}°, ${hoveredCand.tel_dec.toFixed(1)}°) | Dist: ${hoveredCand.dist_pc.toFixed(2)} pc`;
+      } else if (skyMapHoverInfo) {
+        const nRa = cachedSkyMapData.n_ra;
+        const nDec = cachedSkyMapData.n_dec;
+        const c = Math.min(nRa - 1, Math.max(0, Math.floor((ra / 360.0) * nRa)));
+        const r = Math.min(nDec - 1, Math.max(0, Math.floor(((dec + 90.0) / 180.0) * nDec)));
+        const effVal = cachedSkyMapData.efficiency_matrix[r][c];
+        skyMapHoverInfo.textContent = `Antipode RA: ${ra.toFixed(1)}°, Dec: ${dec.toFixed(1)}° | SGL Efficiency: ${(effVal * 100).toFixed(1)}%`;
+      }
+    });
+
+    cvSkyMap.addEventListener('mouseleave', () => {
+      if (skyMapHoverInfo) {
+        skyMapHoverInfo.textContent = 'Hover over sky or target markers to inspect efficiency';
+      }
+    });
+  }
+
+  // Candidate Evaluation Form
+  const evalName = document.getElementById('eval-name');
+  const evalDist = document.getElementById('eval-dist');
+  const evalRa = document.getElementById('eval-ra');
+  const evalDec = document.getElementById('eval-dec');
+  const evalRadius = document.getElementById('eval-radius');
+  const evalRot = document.getElementById('eval-rot');
+  const evalPm = document.getElementById('eval-pm');
+  const evalLocked = document.getElementById('eval-locked');
+  const btnEvalCandidate = document.getElementById('btn-eval-candidate');
+
+  const evalScoreVal = document.getElementById('eval-score-val');
+  const evalTierVal = document.getElementById('eval-tier-val');
+  const coalignmentAlert = document.getElementById('coalignment-alert');
+  const barSnr = document.getElementById('bar-snr');
+  const valSubSnr = document.getElementById('val-sub-snr');
+  const barLogistics = document.getElementById('bar-logistics');
+  const valSubLogistics = document.getElementById('val-sub-logistics');
+  const barEcliptic = document.getElementById('bar-ecliptic');
+  const valSubEcliptic = document.getElementById('val-sub-ecliptic');
+  const barBlur = document.getElementById('bar-blur');
+  const valSubBlur = document.getElementById('val-sub-blur');
+
+  async function evaluateCandidate() {
+    if (!evalName) return;
+    const payload = {
+      name: evalName.value.trim() || 'Custom Discovery',
+      dist_pc: parseFloat(evalDist.value) || 10.0,
+      ra_deg: parseFloat(evalRa.value) || 0.0,
+      dec_deg: parseFloat(evalDec.value) || 0.0,
+      radius_earth: parseFloat(evalRadius.value) || 1.0,
+      rot_period_hrs: parseFloat(evalRot.value) || 24.0,
+      proper_motion_mas_yr: parseFloat(evalPm.value) || 100.0,
+      tidally_locked: evalLocked ? evalLocked.checked : false,
+      z_rec_au: state.z_rec_au || 650.0,
+    };
+
+    try {
+      const res = await fetch('/api/evaluate_candidate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json();
+      if (json.status !== 'success') {
+        showToast('Evaluation failed: ' + (json.message || 'unknown error'), true);
+        return;
+      }
+
+      const c = json.candidate;
+      const co = json.coalignment;
+
+      if (evalScoreVal) evalScoreVal.textContent = c.sgl_score.toFixed(1);
+      if (evalTierVal) {
+        evalTierVal.textContent = c.tier;
+        evalTierVal.className = 'tier-pill ' + (c.sgl_score >= 72 ? 'tier-1' : c.sgl_score >= 50 ? 'tier-2' : 'tier-3');
+      }
+
+      if (barSnr) barSnr.style.width = `${Math.round(c.snr_score * 100)}%`;
+      if (valSubSnr) valSubSnr.textContent = c.snr_score.toFixed(2);
+      if (barLogistics) barLogistics.style.width = `${Math.round(c.scan_logistics_score * 100)}%`;
+      if (valSubLogistics) valSubLogistics.textContent = c.scan_logistics_score.toFixed(2);
+      if (barEcliptic) barEcliptic.style.width = `${Math.round(c.ecliptic_access_score * 100)}%`;
+      if (valSubEcliptic) valSubEcliptic.textContent = c.ecliptic_access_score.toFixed(2);
+      if (barBlur) barBlur.style.width = `${Math.round(c.blur_immunity_score * 100)}%`;
+      if (valSubBlur) valSubBlur.textContent = c.blur_immunity_score.toFixed(2);
+
+      if (coalignmentAlert) {
+        coalignmentAlert.textContent = co.message;
+        coalignmentAlert.className = 'coalignment-alert ' + (co.is_coaligned ? 'coaligned' : 'independent');
+      }
+
+      showToast(`Evaluated ${c.name}: SGL Score ${c.sgl_score}`);
+    } catch (err) {
+      console.error('Candidate evaluation error:', err);
+    }
+  }
+
+  if (btnEvalCandidate) {
+    btnEvalCandidate.addEventListener('click', evaluateCandidate);
+  }
+
+  // Motion Blur & Swarm Simulator
+  const cvBlurSingle = document.getElementById('canvas-blur-single');
+  const ctxBlurSingle = cvBlurSingle ? cvBlurSingle.getContext('2d') : null;
+  const cvBlurSwarm = document.getElementById('canvas-blur-swarm');
+  const ctxBlurSwarm = cvBlurSwarm ? cvBlurSwarm.getContext('2d') : null;
+
+  const blurFleetSize = document.getElementById('blur-fleet-size');
+  const valFleetSize = document.getElementById('val-fleet-size');
+  const blurRotPeriod = document.getElementById('blur-rot-period');
+  const blurLocked = document.getElementById('blur-locked');
+  const btnRunBlur = document.getElementById('btn-run-blur');
+  const titleSwarmNsat = document.getElementById('title-swarm-nsat');
+
+  const metricSingleEta = document.getElementById('metric-single-eta');
+  const metricSingleTime = document.getElementById('metric-single-time');
+  const metricSingleRmse = document.getElementById('metric-single-rmse');
+  const badgeSingleStatus = document.getElementById('badge-single-status');
+
+  const metricSwarmEta = document.getElementById('metric-swarm-eta');
+  const metricSwarmTime = document.getElementById('metric-swarm-time');
+  const metricSwarmRmse = document.getElementById('metric-swarm-rmse');
+  const badgeSwarmStatus = document.getElementById('badge-swarm-status');
+
+  if (blurFleetSize) {
+    blurFleetSize.addEventListener('input', () => {
+      const val = blurFleetSize.value;
+      if (valFleetSize) valFleetSize.textContent = `${val} Craft`;
+      if (titleSwarmNsat) titleSwarmNsat.textContent = `N = ${val}`;
+    });
+  }
+
+  async function runSwarmBlurSimulation() {
+    if (!ctxBlurSingle || !ctxBlurSwarm) return;
+    const nSat = blurFleetSize ? parseInt(blurFleetSize.value, 10) : 8;
+    const rotH = blurRotPeriod ? parseFloat(blurRotPeriod.value) : 24.0;
+    const isLocked = blurLocked ? blurLocked.checked : false;
+
+    const dImgKm = (state.target_telemetry && state.target_telemetry.image_diameter_km) || 4.2;
+
+    const payload = {
+      image_diameter_km: dImgKm,
+      grid_pixels: 32,
+      planet_rot_period_hours: rotH,
+      tidally_locked: isLocked,
+      num_satellites: nSat,
+      integration_time_per_pixel_s: (state.t_int_days || 1.0) * 86400.0,
+      max_lateral_accel_m_s2: 1e-4,
+      v_drift_m_s: (state.target_telemetry && state.target_telemetry.proper_motion_drift_m_s) || 15.0,
+      snr: 25.0,
+    };
+
+    try {
+      const res = await fetch('/api/swarm_blur_sim', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json();
+      if (json.status !== 'success') return;
+
+      const single = json.single;
+      const swarm = json.swarm;
+
+      renderMatrixToCanvas(ctxBlurSingle, single.reconstructed_image);
+      renderMatrixToCanvas(ctxBlurSwarm, swarm.reconstructed_image);
+
+      if (metricSingleEta) metricSingleEta.textContent = single.eta_blur.toFixed(2);
+      if (metricSingleTime) metricSingleTime.textContent = `${Math.round(single.scan_time_days)} days`;
+      if (metricSingleRmse) metricSingleRmse.textContent = single.rmse.toFixed(3);
+      if (badgeSingleStatus) {
+        if (single.eta_blur > 1.0) {
+          badgeSingleStatus.textContent = `Severe Blur (η = ${single.eta_blur.toFixed(1)})`;
+          badgeSingleStatus.className = 'badge badge-warning';
+        } else {
+          badgeSingleStatus.textContent = 'Sharp';
+          badgeSingleStatus.className = 'badge badge-success';
+        }
+      }
+
+      if (metricSwarmEta) metricSwarmEta.textContent = swarm.eta_blur.toFixed(2);
+      if (metricSwarmTime) metricSwarmTime.textContent = `${Math.round(swarm.scan_time_days)} days`;
+      if (metricSwarmRmse) metricSwarmRmse.textContent = swarm.rmse.toFixed(3);
+      if (badgeSwarmStatus) {
+        if (swarm.eta_blur <= 1.0) {
+          badgeSwarmStatus.textContent = `Sharp Recovery (η = ${swarm.eta_blur.toFixed(2)})`;
+          badgeSwarmStatus.className = 'badge badge-success';
+        } else {
+          badgeSwarmStatus.textContent = `Residual Blur (η = ${swarm.eta_blur.toFixed(1)})`;
+          badgeSwarmStatus.className = 'badge badge-warning';
+        }
+      }
+
+      showToast(`Simulated N=1 vs N=${nSat} Swarm (RMSE: ${single.rmse.toFixed(3)} → ${swarm.rmse.toFixed(3)})`);
+    } catch (err) {
+      console.error('Swarm blur simulation error:', err);
+    }
+  }
+
+  if (btnRunBlur) {
+    btnRunBlur.addEventListener('click', runSwarmBlurSimulation);
+  }
+
+  // Ranked Exoplanet Catalog Table
+  const tbodyRankedCandidates = document.getElementById('tbody-ranked-candidates');
+  const badgeTopTarget = document.getElementById('badge-top-target');
+
+  async function loadRankedCatalog() {
+    if (!tbodyRankedCandidates) return;
+    try {
+      const res = await fetch(`/api/ranking?z_rec_au=${state.z_rec_au || 650.0}`);
+      const json = await res.json();
+      if (json.status !== 'success') return;
+      const list = json.data || [];
+
+      if (list.length > 0 && badgeTopTarget) {
+        badgeTopTarget.textContent = `Top Target: ${list[0].name} (${list[0].sgl_score}/100)`;
+      }
+
+      tbodyRankedCandidates.innerHTML = '';
+      list.forEach((cand, idx) => {
+        const tr = document.createElement('tr');
+
+        let tierClass = 'score-tier-2';
+        if (cand.sgl_score >= 72.0) tierClass = 'score-tier-1';
+        else if (cand.sgl_score < 50.0) tierClass = 'score-tier-inv';
+        else if (Math.abs(cand.ecliptic_lat_deg) > 30.0) tierClass = 'score-tier-3';
+
+        tr.innerHTML = `
+          <td><strong>#${idx + 1}</strong></td>
+          <td><strong>${cand.name}</strong></td>
+          <td>${cand.dist_pc.toFixed(2)} pc</td>
+          <td>${cand.ra_deg.toFixed(1)}°, ${cand.dec_deg.toFixed(1)}°</td>
+          <td>${cand.telescope_ra_deg.toFixed(1)}°, ${cand.telescope_dec_deg.toFixed(1)}°</td>
+          <td>${cand.ecliptic_lat_deg.toFixed(1)}°</td>
+          <td>${cand.image_diameter_km.toFixed(1)} km</td>
+          <td><span class="triage-score-badge ${tierClass}">${cand.sgl_score.toFixed(1)}</span></td>
+          <td><small>${cand.tier}</small></td>
+          <td>
+            <button class="btn-table-action" data-name="${cand.name}">
+              Load
+            </button>
+          </td>
+        `;
+
+        const btn = tr.querySelector('.btn-table-action');
+        if (btn) {
+          btn.addEventListener('click', () => {
+            if (evalName) evalName.value = cand.name;
+            if (evalDist) evalDist.value = cand.dist_pc;
+            if (evalRa) evalRa.value = cand.ra_deg;
+            if (evalDec) evalDec.value = cand.dec_deg;
+            if (evalRadius) evalRadius.value = cand.radius_earth;
+            if (evalRot) evalRot.value = cand.rot_period_hrs;
+            if (evalPm) evalPm.value = cand.proper_motion_mas_yr;
+            if (evalLocked) evalLocked.checked = cand.tidally_locked;
+
+            if (blurRotPeriod) blurRotPeriod.value = cand.rot_period_hrs;
+            if (blurLocked) blurLocked.checked = cand.tidally_locked;
+
+            evaluateCandidate();
+            runSwarmBlurSimulation();
+            fetchTargetTelemetry(cand.name, 2048, true);
+            showToast(`Loaded ${cand.name} into simulator & triage engine`);
+          });
+        }
+
+        tbodyRankedCandidates.appendChild(tr);
+      });
+    } catch (err) {
+      console.error('Ranked catalog load error:', err);
+    }
+  }
+
+  // Initial simulation run, target telemetry & triage on page load
   loadCuratedTargets();
   fetchTargetTelemetry('Proxima Centauri b', 2048, false);
+  loadSkyEfficiencyMap();
+  evaluateCandidate();
+  runSwarmBlurSimulation();
+  loadRankedCatalog();
   updateStateFromInputs();
 
 })();
+

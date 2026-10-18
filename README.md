@@ -17,7 +17,8 @@ Adhering strictly to **Journal of Open Source Software (JOSS)** and **Astropy pa
 - **Orbital Mechanics & Station-Keeping:** Focal-line hovering $\Delta v$, Keplerian orbital velocities, black hole ISCO checks, and image cylinder scan budgets.
 - **Multi-Extension FITS Exporters:** NASA/Astropy compliant `.fits` files (`CAUSTIC_MAP`, `RAW_DETECTOR`, `DECONV_EXO`, and binary table `PSF_PROFILE`).
 - **Real Exoplanet Target Resolver & 3D Heliocentric Telemetry:** Direct resolution via NASA Exoplanet Archive TAP API / Astropy coordinates with curated fallback for top 15 targets (Proxima Cen b, TRAPPIST-1, LHS 1140 b, etc.). Computes exact 3D heliocentric positioning, celestial antipode (RA/Dec), out-of-ecliptic inclination, proper-motion lateral drift velocity, and interstellar light-delay communication budgets.
-- **Interactive Dark-Mode Mission Dashboard:** Real-time synchronized 5-panel web application.
+- **SGL Target Triage, Sky Efficiency & Swarm Motion-Blur Analyzer:** Universal SGL Feasibility Index ($0-100$) and mission Tier classifier based on photon SNR, scan logistics, ecliptic access ($\cos^2\beta$), and blur immunity; full-sky Solar Lens efficiency map ($72 \times 36$); trajectory co-alignment analyzer ($\Delta \theta \le 3.0^\circ$); and single-spacecraft vs. multi-satellite swarm ($N=1 \dots 16$) rotational motion-blur modeling ($\eta_{\text{blur}} = t_{\text{scan}} / t_{\text{max\_blur}}$).
+- **Interactive Dark-Mode Mission Dashboard:** Real-time synchronized 6-panel web application.
 
 ---
 
@@ -158,6 +159,43 @@ print(f"Light-Travel Comms Delay: {ephem['light_delay_days']:.2f} light-days ({e
 print(f"Image Cylinder Diameter: D_img ≈ {ephem['image_diameter_km']:.1f} km | Proper-Motion Drift: {ephem['proper_motion_drift_m_s']:.1f} m/s")
 ```
 
+### 7. Exoplanet Triage, Sky Efficiency & Swarm Motion-Blur Analyzer
+```python
+from sgl_sim import (
+    score_exoplanet_candidate,
+    compute_motion_blur,
+    get_ranked_catalog,
+    check_mission_coalignment,
+    generate_sky_efficiency_map,
+)
+
+# 1. Universal SGL Feasibility Scoring & Ecliptic Access
+eval_res = score_exoplanet_candidate(
+    name="TRAPPIST-1 e",
+    ra_deg=346.62,
+    dec_deg=-5.04,
+    dist_pc=12.43,
+    radius_earth=0.92,
+    rot_period_hrs=146.4,
+    tidally_locked=True,
+    proper_motion_mas_yr=1005.0,
+    z_rec_au=650.0,
+)
+print(f"Candidate: {eval_res['name']} | Score: {eval_res['sgl_score']}/100 | Tier: {eval_res['tier']}")
+print(f"Ecliptic Access: {eval_res['ecliptic_access_score']:.2f} (beta = {eval_res['ecliptic_lat_deg']:.2f}°)")
+
+# 2. Rotational Motion Blur: Single Spacecraft vs. Multi-Satellite Swarm
+single = compute_motion_blur(image_diameter_km=5.0, planet_rot_period_hours=24.0, num_satellites=1)
+swarm = compute_motion_blur(image_diameter_km=5.0, planet_rot_period_hours=24.0, num_satellites=8)
+print(f"Single (N=1) Blur: eta = {single['eta_blur']:.1f} (RMSE: {single['rmse']:.3f})")
+print(f"Swarm (N=8) Blur: eta = {swarm['eta_blur']:.2f} (RMSE: {swarm['rmse']:.3f})")
+
+# 3. Check Multi-Planet Mission Co-Alignment (e.g. TRAPPIST-1 system)
+active = [{"name": "TRAPPIST-1 e", "ra_deg": 346.62, "dec_deg": -5.04}]
+coalign = check_mission_coalignment(active, new_target_ra=346.62, new_target_dec=-5.04)
+print(f"Co-aligned? {coalign['is_coaligned']} -> {coalign['message']}")
+```
+
 ---
 
 ## Interactive Web Mission Dashboard
@@ -182,7 +220,8 @@ Then navigate to `http://127.0.0.1:5000` in your web browser.
 3. **Panel 3 — Telescope Detector Viewport & Wave PSF:** Occulting coronagraph mask, Baumbach-Allen coronal glow, resolved Einstein Ring, and high-resolution radial Bessel $J_0^2$ diffraction profile.
 4. **Panel 4 — Exoplanet Deconvolution & Tradespace Heatmap:** 3-stage visualizer (Ground Truth $\to$ Noisy Detector $\to$ Wiener Reconstruction) and $(z_{\text{rec}}, D_{\text{tel}})$ mission tradespace contours.
 5. **Panel 5 — Target Exoplanet & Heliocentric Positioning:** Real exoplanet resolver (NASA Exoplanet Archive + SIMBAD + top 15 prime candidates), calculating celestial antipodes, 3D heliocentric $(X,Y,Z)$ vectors, out-of-ecliptic inclination, ~3.2 light-day communication delays, and proper-motion lateral drift velocities.
-6. **Scientific Export Bar:** Single-click downloads of `.fits`, `.csv`, and `.json` files.
+6. **Panel 6 — SGL Target Triage, Sky Efficiency & Swarm Motion-Blur Analyzer:** Interactive $72 \times 36$ all-sky Solar Lens efficiency map, candidate evaluator with trajectory co-alignment detector ($\Delta \theta \le 3.0^\circ$), side-by-side single craft ($N=1$) vs. swarm fleet ($N=1\dots16$) rotational motion-blur comparator, and ranked candidate catalog table.
+7. **Scientific Export Bar:** Single-click downloads of `.fits`, `.csv`, and `.json` files.
 
 ---
 

@@ -475,6 +475,229 @@
         </div>
       </section>
 
+      <!-- Panel 6: SGL Target Triage, Sky Efficiency & Swarm Motion-Blur Analyzer -->
+      <section class="scientific-panel full-width-panel" id="panel-triage">
+        <div class="panel-header">
+          <div class="panel-title-group">
+            <span class="panel-number">6</span>
+            <h2>SGL Target Triage, Sky Efficiency & Swarm Motion-Blur Analyzer</h2>
+          </div>
+          <div class="triage-status-badges">
+            <span class="badge badge-accent" id="badge-top-target">Top Target: TRAPPIST-1 e</span>
+            <span class="badge badge-success">Multi-Craft Swarm Engine Active</span>
+          </div>
+        </div>
+
+        <!-- 3-Column Grid for Triage: Sky Map, Candidate Evaluator & Swarm Blur -->
+        <div class="triage-dashboard-grid">
+          
+          <!-- Column 1: All-Sky Solar Lens Efficiency Map -->
+          <div class="triage-card sky-map-card">
+            <div class="triage-card-header">
+              <span class="card-icon">🌌</span>
+              <div>
+                <h3>All-Sky Solar Lens Efficiency Map</h3>
+                <span class="card-subtitle">Ecliptic Corridor (cos²β) vs Galactic Plane Avoidance</span>
+              </div>
+            </div>
+            <div class="sky-map-container">
+              <canvas id="canvas-sky-map" width="560" height="280"></canvas>
+              <div class="sky-map-overlay-info" id="sky-map-hover-info">
+                Hover over sky or target markers to inspect efficiency
+              </div>
+            </div>
+            <div class="map-legend">
+              <span class="legend-item"><span class="legend-color legend-high"></span> Ecliptic Corridor (β ≈ 0°)</span>
+              <span class="legend-item"><span class="legend-color legend-med"></span> Mid Inclination</span>
+              <span class="legend-item"><span class="legend-color legend-low"></span> Galactic Obscuration / Polar</span>
+              <span class="legend-item"><span class="legend-marker">✦</span> Target Candidate</span>
+            </div>
+          </div>
+
+          <!-- Column 2: Candidate Evaluation & Co-Alignment Form -->
+          <div class="triage-card candidate-eval-card">
+            <div class="triage-card-header">
+              <span class="card-icon">🧭</span>
+              <div>
+                <h3>Evaluate New Exoplanet Discovery</h3>
+                <span class="card-subtitle">Trajectory Co-Alignment & Universal SGL Feasibility Index</span>
+              </div>
+            </div>
+            <form id="form-eval-candidate" class="candidate-form" onsubmit="return false;">
+              <div class="form-row">
+                <div class="form-group flex-2">
+                  <label for="eval-name">Exoplanet Name</label>
+                  <input type="text" id="eval-name" class="form-input form-input-sm" value="TRAPPIST-1 e" required>
+                </div>
+                <div class="form-group flex-1">
+                  <label for="eval-dist">Distance (pc)</label>
+                  <input type="number" id="eval-dist" class="form-input form-input-sm" value="12.43" step="0.01" min="0.1" required>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group flex-1">
+                  <label for="eval-ra">RA (deg)</label>
+                  <input type="number" id="eval-ra" class="form-input form-input-sm" value="346.62" step="0.01" min="0" max="360" required>
+                </div>
+                <div class="form-group flex-1">
+                  <label for="eval-dec">Dec (deg)</label>
+                  <input type="number" id="eval-dec" class="form-input form-input-sm" value="-5.04" step="0.01" min="-90" max="90" required>
+                </div>
+                <div class="form-group flex-1">
+                  <label for="eval-radius">Radius (R⊕)</label>
+                  <input type="number" id="eval-radius" class="form-input form-input-sm" value="0.92" step="0.01" min="0.1" required>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group flex-1">
+                  <label for="eval-rot">P_rot (hours)</label>
+                  <input type="number" id="eval-rot" class="form-input form-input-sm" value="146.4" step="0.1" min="0.1" required>
+                </div>
+                <div class="form-group flex-1">
+                  <label for="eval-pm">Proper Motion (mas/yr)</label>
+                  <input type="number" id="eval-pm" class="form-input form-input-sm" value="1005" step="1" min="0" required>
+                </div>
+                <div class="form-group checkbox-group flex-1">
+                  <label class="checkbox-label">
+                    <input type="checkbox" id="eval-locked" checked>
+                    <span>Tidally Locked</span>
+                  </label>
+                </div>
+              </div>
+              <div class="form-actions">
+                <button type="button" id="btn-eval-candidate" class="btn btn-sm btn-primary">
+                  Evaluate & Check Co-Alignment
+                </button>
+              </div>
+            </form>
+
+            <!-- Evaluation Results -->
+            <div class="eval-results-box" id="eval-results-box">
+              <div class="eval-score-header">
+                <div class="score-pill">
+                  <span class="score-number" id="eval-score-val">87.5</span>
+                  <span class="score-label">SGL Score / 100</span>
+                </div>
+                <div class="tier-pill" id="eval-tier-val">Tier 1: Prime Swarm/Single Target</div>
+              </div>
+              <div class="coalignment-alert" id="coalignment-alert">
+                Co-alignment status...
+              </div>
+              <div class="eval-subscores-grid">
+                <div class="subscore-item">
+                  <span class="subscore-label">SNR (30%):</span>
+                  <div class="progress-bar"><div class="progress-fill" id="bar-snr" style="width: 80%"></div></div>
+                  <span class="subscore-val" id="val-sub-snr">0.80</span>
+                </div>
+                <div class="subscore-item">
+                  <span class="subscore-label">Logistics (25%):</span>
+                  <div class="progress-bar"><div class="progress-fill" id="bar-logistics" style="width: 95%"></div></div>
+                  <span class="subscore-val" id="val-sub-logistics">0.95</span>
+                </div>
+                <div class="subscore-item">
+                  <span class="subscore-label">Ecliptic (25%):</span>
+                  <div class="progress-bar"><div class="progress-fill" id="bar-ecliptic" style="width: 100%"></div></div>
+                  <span class="subscore-val" id="val-sub-ecliptic">1.00</span>
+                </div>
+                <div class="subscore-item">
+                  <span class="subscore-label">Blur Immunity (20%):</span>
+                  <div class="progress-bar"><div class="progress-fill" id="bar-blur" style="width: 98%"></div></div>
+                  <span class="subscore-val" id="val-sub-blur">0.98</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Column 3: Single Craft vs. Swarm Motion Blur -->
+          <div class="triage-card blur-card">
+            <div class="triage-card-header">
+              <span class="card-icon">🌀</span>
+              <div>
+                <h3>Rotational Motion Blur: Single vs. Swarm</h3>
+                <span class="card-subtitle">η_blur = t_scan / t_max_blur (t_max = P_rot / (π N_pix))</span>
+              </div>
+            </div>
+            <div class="blur-controls-bar">
+              <div class="blur-ctrl-item">
+                <label for="blur-fleet-size">Fleet Size (N_sat):</label>
+                <input type="range" id="blur-fleet-size" min="1" max="16" value="8" step="1">
+                <span id="val-fleet-size" class="highlight-val">8 Craft</span>
+              </div>
+              <div class="blur-ctrl-item">
+                <label for="blur-rot-period">P_rot (h):</label>
+                <input type="number" id="blur-rot-period" class="form-input form-input-sm" value="24.0" step="1" min="1" style="width: 70px;">
+              </div>
+              <div class="blur-ctrl-item">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="blur-locked">
+                  <span>Tidally Locked</span>
+                </label>
+              </div>
+              <button type="button" id="btn-run-blur" class="btn btn-sm btn-secondary">Simulate Blur</button>
+            </div>
+
+            <div class="blur-comparison-display">
+              <!-- Single Craft Display -->
+              <div class="blur-craft-box">
+                <div class="craft-header">
+                  <span class="craft-title">Single Spacecraft (N = 1)</span>
+                  <span class="badge badge-warning" id="badge-single-status">Severe Blur (η > 1)</span>
+                </div>
+                <canvas id="canvas-blur-single" width="160" height="160"></canvas>
+                <div class="craft-metrics">
+                  <div class="metric-row"><span>Smear Factor (η):</span><strong id="metric-single-eta" class="highlight-red">12.5</strong></div>
+                  <div class="metric-row"><span>Scan Duration:</span><span id="metric-single-time">1024 days</span></div>
+                  <div class="metric-row"><span>Recon RMSE:</span><span id="metric-single-rmse">0.245</span></div>
+                </div>
+              </div>
+
+              <!-- Swarm Display -->
+              <div class="blur-craft-box highlight-craft">
+                <div class="craft-header">
+                  <span class="craft-title">Swarm Fleet (<span id="title-swarm-nsat">N = 8</span>)</span>
+                  <span class="badge badge-success" id="badge-swarm-status">Sharp Recovery (η ≤ 1)</span>
+                </div>
+                <canvas id="canvas-blur-swarm" width="160" height="160"></canvas>
+                <div class="craft-metrics">
+                  <div class="metric-row"><span>Smear Factor (η):</span><strong id="metric-swarm-eta" class="highlight-green">0.78</strong></div>
+                  <div class="metric-row"><span>Scan Duration:</span><span id="metric-swarm-time">128 days</span></div>
+                  <div class="metric-row"><span>Recon RMSE:</span><strong id="metric-swarm-rmse" class="highlight-cyan">0.048</strong></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Ranked Exoplanet Catalog Table -->
+        <div class="ranked-catalog-container">
+          <div class="table-header-group">
+            <h3>Curated SGL Exoplanet Candidate Ranking</h3>
+            <span class="text-muted">Ranked descending by universal SGL Feasibility Score</span>
+          </div>
+          <div class="table-responsive">
+            <table class="triage-table" id="table-ranked-candidates">
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Candidate</th>
+                  <th>Distance</th>
+                  <th>Target (RA / Dec)</th>
+                  <th>Antipode (RA / Dec)</th>
+                  <th>Ecliptic Lat (β)</th>
+                  <th>D_img</th>
+                  <th>SGL Score</th>
+                  <th>Mission Tier</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="tbody-ranked-candidates">
+                <!-- Dynamically populated via /api/ranking -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
     </main>
   </div>
 

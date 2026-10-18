@@ -78,6 +78,16 @@ To reconstruct the surface of an exoplanet from the convolved, noise-degraded im
 $$\hat{O}(f) = \frac{H^*(f)}{|H(f)|^2 + 1/\text{SNR}^2} Y(f)$$
 where $H(f)$ is the optical transfer function computed from the Bessel $J_0^2$ kernel. Quality metrics including Root Mean Square Error (RMSE) and Structural Similarity (SSIM) quantify recovery fidelity.
 
+## Exoplanet Triage & Rotational Motion Blur Modeling
+
+On rotating exoplanets, single-spacecraft scans across the projected image cylinder $D_{\text{img}}$ can suffer severe rotational smearing when the scan duration exceeds the rotational smearing limit. The maximum dwell time before rotational blur exceeds one pixel of an $N_{\text{pix}} \times N_{\text{pix}}$ map is:
+$$t_{\text{max\_blur}} = \frac{P_{\text{rot}}}{\pi N_{\text{pix}}}$$
+For a constellation of $N_{\text{sat}}$ spacecraft dividing the image cylinder, the total scan time is $t_{\text{scan}} = \frac{N_{\text{pix}}^2}{N_{\text{sat}}} t_{\text{dwell}}$, yielding the motion blur factor:
+$$\eta_{\text{blur}} = \frac{t_{\text{scan}}}{t_{\text{max\_blur}}}$$
+When $\eta_{\text{blur}} > 1.0$, `sgl-sim` convolves the surface reconstruction with a latitude-dependent directional rotational blur kernel, quantitatively demonstrating how single spacecraft ($N=1$) produce smeared continent maps while multi-craft swarms ($N_{\text{sat}} \ge 4-8$) restore sharp surface feature fidelity.
+
+Candidates are ranked using a universal SGL Feasibility Index ($0 - 100$) evaluating photon flux SNR (30%), scan logistics and proper-motion drift (25%), ecliptic launch access $\cos^2\beta_{\text{ecl}}$ rewarding Solar Oberth / Jupiter gravity-assist trajectories (25%), and rotational blur immunity (20%). Spacecraft trajectory co-alignment across multi-planet systems (e.g., TRAPPIST-1 d, e, f) is computed within a $\le 3.0^\circ$ lateral propulsion deflection cone.
+
 # Software Architecture
 
 `sgl-sim` is organized as an Astropy-compatible scientific package structured in a clean `src/` layout:
@@ -88,6 +98,7 @@ where $H(f)$ is the optical transfer function computed from the Bessel $J_0^2$ k
 - `sgl_sim.orbital`: Keplerian and hovering focal-line orbital mechanics, image cylinder geometry, and station-keeping $\Delta v$.
 - `sgl_sim.tradespace`: Grid evaluators across $(z_{\text{rec}}, D_{\text{tel}})$ mission parameters.
 - `sgl_sim.targets`: NASA Exoplanet Archive and Astropy coordinate resolver, celestial antipodes, 3D heliocentric positioning, and proper-motion focal line drift.
+- `sgl_sim.triage`: Universal SGL feasibility classifier, all-sky efficiency mapping ($72 \times 36$), mission co-alignment analyzer, and single-craft vs. swarm rotational blur modeling.
 - `sgl_sim.exporters`: Multi-extension NASA FITS (`astropy.io.fits`), CSV, and JSON exporters.
 - `sgl_sim.web`: A synchronized interactive scientific dashboard powered by Flask, vanilla HTML5/Canvas, and responsive CSS.
 
