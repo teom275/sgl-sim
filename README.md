@@ -187,8 +187,8 @@ If you use `sgl-sim` in your research, mission design studies, or educational ac
 
 ### BibTeX
 ```bibtex
-@article{Vance2026_sglsim,
-  author = {Vance, Elena and Thorne, Alistair},
+@article{Maggio2026_sglsim,
+  author = {Maggio, Teo and Antigravity},
   title = {sgl-sim: Scientific Mission Design & Wave Optics Simulator for Gravitational Lens Telescopes},
   journal = {Journal of Open Source Software},
   year = {2026},

@@ -9,16 +9,14 @@ tags:
   - mission design
   - astropy
 authors:
-  - name: Elena Vance
-    orcid: 0000-0002-1825-0097
+  - name: Teo Maggio
     affiliation: 1
-  - name: Alistair Thorne
-    orcid: 0000-0003-4921-8840
+  - name: Antigravity
     affiliation: 2
 affiliations:
-  - name: Institute for Advanced Astrophysics & Space Exploration, Cambridge, MA, USA
+  - name: Independent Researcher
     index: 1
-  - name: Department of Physics and Astronomy, Gravitational Optics Laboratory, Pasadena, CA, USA
+  - name: Advanced Agentic Coding, Google DeepMind
     index: 2
 date: 18 October 2026
 bibliography: paper.bib

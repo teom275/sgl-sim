@@ -3,14 +3,12 @@
   "description": "An open-source scientific Python package adhering to Astropy and JOSS standards for mission design, relativistic ray-tracing, wave optics, J2 astroid caustics, and exoplanet deconvolution around Solar and Black Hole Gravitational Lenses.",
   "creators": [
     {
-      "name": "Vance, Elena",
-      "affiliation": "Institute for Advanced Astrophysics & Space Exploration",
-      "orcid": "0000-0002-1825-0097"
+      "name": "Maggio, Teo",
+      "affiliation": "Independent Researcher"
     },
     {
-      "name": "Thorne, Alistair",
-      "affiliation": "Department of Physics and Astronomy, Gravitational Optics Laboratory",
-      "orcid": "0000-0003-4921-8840"
+      "name": "Antigravity",
+      "affiliation": "Advanced Agentic Coding, Google DeepMind"
     }
   ],
   "keywords": [
