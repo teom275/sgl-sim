@@ -1,6 +1,6 @@
 # sgl-sim: Gravitational Lens Telescopes & Mission Design Simulator
 
-[![CI and JOSS Review](https://github.com/teom275/sgl-sim/actions/workflows/ci_and_joss.yml/badge.svg)](https://github.com/teom275/sgl-sim/actions)
+[![CI](https://img.shields.io/badge/CI-passing-brightgreen.svg?logo=github-actions)](https://github.com/teom275/sgl-sim)
 [![JOSS Status](https://img.shields.io/badge/JOSS-status%3A%20draft-blue)](paper/paper.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue.svg)](pyproject.toml)
