@@ -81,9 +81,9 @@ where $H(f)$ is the optical transfer function computed from the Bessel $J_0^2$ k
 ## Exoplanet Triage & Rotational Motion Blur Modeling
 
 On rotating exoplanets, single-spacecraft scans across the projected image cylinder $D_{\text{img}}$ can suffer severe rotational smearing when the scan duration exceeds the rotational smearing limit. The maximum dwell time before rotational blur exceeds one pixel of an $N_{\text{pix}} \times N_{\text{pix}}$ map is:
-$$t_{\text{max\_blur}} = \frac{P_{\text{rot}}}{\pi N_{\text{pix}}}$$
+$$t_{\text{blur}} = \frac{P_{\text{rot}}}{\pi N_{\text{pix}}}$$
 For a constellation of $N_{\text{sat}}$ spacecraft dividing the image cylinder, the total scan time is $t_{\text{scan}} = \frac{N_{\text{pix}}^2}{N_{\text{sat}}} t_{\text{dwell}}$, yielding the motion blur factor:
-$$\eta_{\text{blur}} = \frac{t_{\text{scan}}}{t_{\text{max\_blur}}}$$
+$$\eta_{\text{blur}} = \frac{t_{\text{scan}}}{t_{\text{blur}}}$$
 When $\eta_{\text{blur}} > 1.0$, `sgl-sim` convolves the surface reconstruction with a latitude-dependent directional rotational blur kernel, quantitatively demonstrating how single spacecraft ($N=1$) produce smeared continent maps while multi-craft swarms ($N_{\text{sat}} \ge 4-8$) restore sharp surface feature fidelity.
 
 Candidates are ranked using a universal SGL Feasibility Index ($0 - 100$) evaluating photon flux SNR (30%), scan logistics and proper-motion drift (25%), ecliptic launch access $\cos^2\beta_{\text{ecl}}$ rewarding Solar Oberth / Jupiter gravity-assist trajectories (25%), and rotational blur immunity (20%). Spacecraft trajectory co-alignment across multi-planet systems (e.g., TRAPPIST-1 d, e, f) is computed within a $\le 3.0^\circ$ lateral propulsion deflection cone.
