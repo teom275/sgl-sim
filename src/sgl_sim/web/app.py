@@ -54,6 +54,11 @@ from sgl_sim.orbital import (
     isco_radius,
 )
 from sgl_sim.tradespace import evaluate_tradespace
+from sgl_sim.targets import (
+    resolve_exoplanet,
+    compute_sgl_deployment_vector,
+    list_curated_targets,
+)
 from sgl_sim.exporters import (
     build_simulation_fits_hdulist,
     export_fits,
@@ -279,6 +284,42 @@ def api_research_analysis():
         "t_req_hours_matrix": ts_data["t_req_hours_matrix"].tolist(),
         "target_snr": ts_data["target_snr"],
     })
+
+
+@app.route("/api/targets", methods=["GET"])
+def api_targets():
+    """Return the curated list of top 15 prime SGL exoplanet targets."""
+    return jsonify(list_curated_targets())
+
+
+@app.route("/api/target_ephemeris", methods=["GET", "POST"])
+def api_target_ephemeris():
+    """
+    Compute 3D heliocentric positioning, celestial antipode, and drift kinematics
+    for a chosen exoplanet target.
+    """
+    if request.method == "POST":
+        params = request.get_json(force=True, silent=True) or {}
+    else:
+        params = request.args.to_dict()
+
+    target_query = params.get("target", "Proxima Centauri b")
+    z_rec_au = float(params.get("z_rec_au", 650.0))
+    arrival_year_raw = params.get("arrival_year", 2048.0)
+    arrival_year = float(arrival_year_raw) if arrival_year_raw not in (None, "", "null") else None
+    cruise_vel_au_yr = float(params.get("cruise_velocity_au_yr", 20.0))
+
+    try:
+        resolved = resolve_exoplanet(target_query)
+        ephem = compute_sgl_deployment_vector(
+            target_data=resolved,
+            z_rec_au=z_rec_au,
+            arrival_year=arrival_year,
+            cruise_vel_au_yr=cruise_vel_au_yr,
+        )
+        return jsonify({"status": "success", "data": ephem})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 400
 
 
 @app.route("/api/export_fits", methods=["GET", "POST"])

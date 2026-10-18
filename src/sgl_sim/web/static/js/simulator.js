@@ -101,6 +101,36 @@
   const metricRmseGain = document.getElementById('metric-rmse-gain');
   const metricFidelity = document.getElementById('metric-fidelity');
 
+  // Target Resolver DOM Elements
+  const selectTarget = document.getElementById('select-target');
+  const sidebarTargetSelect = document.getElementById('sidebar-target-select');
+  const inputTargetCustom = document.getElementById('input-target-custom');
+  const inputArrivalYear = document.getElementById('input-arrival-year');
+  const btnFetchTarget = document.getElementById('btn-fetch-target');
+  const valTargetName = document.getElementById('val-target-name');
+
+  const targetDisplayName = document.getElementById('target-display-name');
+  const telemTargetHost = document.getElementById('telem-target-host');
+  const telemTargetCoords = document.getElementById('telem-target-coords');
+  const telemTargetDist = document.getElementById('telem-target-dist');
+  const telemTargetConstellation = document.getElementById('telem-target-constellation');
+  const telemTargetPm = document.getElementById('telem-target-pm');
+  const telemTargetRadius = document.getElementById('telem-target-radius');
+
+  const telemTelRadec = document.getElementById('telem-tel-radec');
+  const telemTelConstellation = document.getElementById('telem-tel-constellation');
+  const telemTelXyz = document.getElementById('telem-tel-xyz');
+  const telemTelNorm = document.getElementById('telem-tel-norm');
+  const telemEclLon = document.getElementById('telem-ecl-lon');
+  const telemEclInc = document.getElementById('telem-ecl-inc');
+
+  const telemLightDelay = document.getElementById('telem-light-delay');
+  const telemCruiseTime = document.getElementById('telem-cruise-time');
+  const telemImgDiameter = document.getElementById('telem-img-diameter');
+  const telemPmDrift = document.getElementById('telem-pm-drift');
+  const telemAnnualSweep = document.getElementById('telem-annual-sweep');
+  const telemDataSource = document.getElementById('telem-data-source');
+
   // Presets Configuration
   const presets = {
     'solar-default': {
@@ -1005,7 +1035,173 @@
     window.location.href = `/api/export_json?${params.toString()}`;
   });
 
-  // Initial simulation run on page load
+  // ==========================================
+  // PANEL 5: Target Exoplanet Resolver & Ephemeris
+  // ==========================================
+  async function loadCuratedTargets() {
+    try {
+      const resp = await fetch('/api/targets');
+      if (!resp.ok) return;
+      const targets = await resp.json();
+
+      if (selectTarget) {
+        selectTarget.innerHTML = '';
+        targets.forEach((tgt) => {
+          const opt = document.createElement('option');
+          opt.value = tgt.name;
+          opt.textContent = `${tgt.name} (${tgt.distance_pc.toFixed(2)} pc / ${tgt.constellation})`;
+          if (tgt.name === 'Proxima Centauri b') opt.selected = true;
+          selectTarget.appendChild(opt);
+        });
+        const customOpt = document.createElement('option');
+        customOpt.value = 'custom';
+        customOpt.textContent = 'Custom Name or RA/Dec...';
+        selectTarget.appendChild(customOpt);
+      }
+    } catch (e) {
+      console.error('Error loading curated targets:', e);
+    }
+  }
+
+  async function fetchTargetTelemetry(targetQuery, arrivalYear, autoUpdateSim = true) {
+    if (!targetQuery) targetQuery = 'Proxima Centauri b';
+    const year = arrivalYear !== undefined && arrivalYear !== null
+      ? arrivalYear
+      : (inputArrivalYear ? parseInt(inputArrivalYear.value, 10) : 2048);
+
+    try {
+      const resp = await fetch('/api/target_ephemeris', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          target: targetQuery,
+          z_rec_au: state.z_rec_au,
+          arrival_year: year,
+          cruise_velocity_au_yr: 20.0,
+        }),
+      });
+
+      const res = await resp.json();
+      if (res.status !== 'success' || !res.data) {
+        showToast(res.message || 'Error resolving target');
+        return;
+      }
+
+      const d = res.data;
+      state.target_telemetry = d;
+
+      // Update UI elements
+      if (targetDisplayName) targetDisplayName.textContent = d.target_name;
+      if (valTargetName) valTargetName.textContent = d.target_name.replace('Centauri', 'Cen');
+      if (telemTargetHost) telemTargetHost.textContent = d.hostname;
+      if (telemTargetCoords) {
+        const raStr = `${d.target_ra_deg.toFixed(2)}°`;
+        const decStr = `${d.target_dec_deg > 0 ? '+' : ''}${d.target_dec_deg.toFixed(2)}°`;
+        telemTargetCoords.textContent = `${raStr} / ${decStr} (Epoch ${d.arrival_year || 2000})`;
+      }
+      if (telemTargetDist) {
+        telemTargetDist.textContent = `${d.target_distance_pc.toFixed(2)} pc (${d.target_distance_ly.toFixed(2)} ly)`;
+      }
+      if (telemTargetConstellation) telemTargetConstellation.textContent = d.target_constellation;
+      if (telemTargetPm) {
+        telemTargetPm.textContent = `${d.target_pmra_mas_yr.toFixed(1)}, ${d.target_pmdec_mas_yr.toFixed(1)} mas/yr (Total: ${d.target_pm_total_mas_yr.toFixed(1)})`;
+      }
+      if (telemTargetRadius) telemTargetRadius.textContent = `${d.target_pl_rade.toFixed(2)} R⊕`;
+
+      // Telescope Antipode & Heliocentric Coords
+      if (telemTelRadec) {
+        const tRa = `${d.telescope_ra_deg.toFixed(2)}°`;
+        const tDec = `${d.telescope_dec_deg > 0 ? '+' : ''}${d.telescope_dec_deg.toFixed(2)}°`;
+        telemTelRadec.textContent = `${tRa} / ${tDec}`;
+      }
+      if (telemTelConstellation) telemTelConstellation.textContent = d.telescope_constellation;
+      if (telemTelXyz) {
+        const xStr = (d.x_au >= 0 ? '+' : '') + d.x_au.toFixed(1);
+        const yStr = (d.y_au >= 0 ? '+' : '') + d.y_au.toFixed(1);
+        const zStr = (d.z_au >= 0 ? '+' : '') + d.z_au.toFixed(1);
+        telemTelXyz.textContent = `(${xStr}, ${yStr}, ${zStr}) AU`;
+      }
+      if (telemTelNorm) telemTelNorm.textContent = `${d.vector_norm_au.toFixed(1)} AU`;
+      if (telemEclLon) telemEclLon.textContent = `${d.ecliptic_lon_deg.toFixed(2)}°`;
+      if (telemEclInc) telemEclInc.textContent = `${d.ecliptic_inclination_deg.toFixed(2)}° out of ecliptic`;
+
+      // Feasibility & Logistics
+      if (telemLightDelay) {
+        telemLightDelay.textContent = `${d.light_delay_days.toFixed(2)} light-days (${d.light_delay_hours.toFixed(1)} hrs)`;
+      }
+      if (telemCruiseTime) {
+        telemCruiseTime.textContent = `${d.cruise_time_years.toFixed(1)} yrs (Solar Oberth @ ${d.cruise_velocity_au_yr} AU/yr)`;
+      }
+      if (telemImgDiameter) {
+        telemImgDiameter.textContent = `D_img ≈ ${d.image_diameter_km.toFixed(1)} km (${Math.round(d.image_diameter_m).toLocaleString()} m)`;
+      }
+      if (telemPmDrift) {
+        const kmh = (d.proper_motion_drift_km_s * 3600.0).toFixed(1);
+        telemPmDrift.textContent = `${d.proper_motion_drift_m_s.toFixed(1)} m/s (${kmh} km/hr)`;
+      }
+      if (telemAnnualSweep) {
+        telemAnnualSweep.textContent = `${Math.round(d.annual_lateral_drift_km).toLocaleString()} km / year`;
+      }
+      if (telemDataSource) telemDataSource.textContent = d.source;
+
+      // Automatically sync target distance and trigger simulation update
+      if (autoUpdateSim && d.target_distance_pc > 0) {
+        inputDistPc.value = d.target_distance_pc;
+        valDistPc.textContent = `${d.target_distance_pc.toFixed(2)} pc`;
+        state.distance_source_pc = d.target_distance_pc;
+        triggerSimulation();
+      }
+    } catch (err) {
+      console.error('Target ephemeris error:', err);
+    }
+  }
+
+  // Target event listeners
+  if (selectTarget) {
+    selectTarget.addEventListener('change', () => {
+      const val = selectTarget.value;
+      if (val === 'custom') {
+        if (inputTargetCustom) inputTargetCustom.focus();
+      } else {
+        if (inputTargetCustom) inputTargetCustom.value = '';
+        if (sidebarTargetSelect) sidebarTargetSelect.value = val;
+        fetchTargetTelemetry(val);
+        showToast(`Target Set: ${val}`);
+      }
+    });
+  }
+
+  if (sidebarTargetSelect) {
+    sidebarTargetSelect.addEventListener('change', () => {
+      const val = sidebarTargetSelect.value;
+      if (val !== 'custom') {
+        if (selectTarget) selectTarget.value = val;
+        fetchTargetTelemetry(val);
+        showToast(`Target Set: ${val}`);
+      }
+    });
+  }
+
+  if (btnFetchTarget) {
+    btnFetchTarget.addEventListener('click', () => {
+      const customVal = inputTargetCustom && inputTargetCustom.value.trim();
+      const targetQuery = customVal || (selectTarget ? selectTarget.value : 'Proxima Centauri b');
+      const year = inputArrivalYear ? parseInt(inputArrivalYear.value, 10) : 2048;
+      fetchTargetTelemetry(targetQuery, year);
+      showToast(`Resolving Target Ephemeris for ${targetQuery}...`);
+    });
+  }
+
+  // Update target telemetry distance if z_rec changes
+  inputZRec.addEventListener('input', () => {
+    if (state.target_telemetry) {
+      fetchTargetTelemetry(state.target_telemetry.target_name, state.target_telemetry.arrival_year, false);
+    }
+  });
+
+  // Initial simulation run and target telemetry on page load
+  loadCuratedTargets();
+  fetchTargetTelemetry('Proxima Centauri b', 2048, false);
   updateStateFromInputs();
 
 })();

@@ -50,6 +50,12 @@ from sgl_sim.orbital import (
 from sgl_sim.tradespace import (
     evaluate_tradespace,
 )
+from sgl_sim.targets import (
+    resolve_exoplanet,
+    compute_sgl_deployment_vector,
+    list_curated_targets,
+    TOP_15_SGL_TARGETS,
+)
 from sgl_sim.exporters import (
     build_simulation_fits_hdulist,
     export_fits,
@@ -88,6 +94,10 @@ __all__ = [
     "image_cylinder_diameter",
     "station_keeping_delta_v",
     "evaluate_tradespace",
+    "resolve_exoplanet",
+    "compute_sgl_deployment_vector",
+    "list_curated_targets",
+    "TOP_15_SGL_TARGETS",
     "build_simulation_fits_hdulist",
     "export_fits",
     "export_csv",

@@ -127,13 +127,39 @@
           <input type="range" id="input-t-int" min="0.1" max="10.0" step="0.1" value="1.0" class="slider">
         </div>
 
+        <!-- Prime Exoplanet Target Selector -->
+        <div class="form-group" id="grp-target-select">
+          <div class="label-row">
+            <label for="sidebar-target-select">Prime Exoplanet Target</label>
+            <span id="val-target-name" class="val-display">Proxima Cen b</span>
+          </div>
+          <select id="sidebar-target-select" class="form-select">
+            <option value="Proxima Centauri b" selected>Proxima Centauri b (1.30 pc)</option>
+            <option value="TRAPPIST-1 e">TRAPPIST-1 e (12.43 pc)</option>
+            <option value="TRAPPIST-1 d">TRAPPIST-1 d (12.43 pc)</option>
+            <option value="TRAPPIST-1 f">TRAPPIST-1 f (12.43 pc)</option>
+            <option value="LHS 1140 b">LHS 1140 b (14.99 pc)</option>
+            <option value="Tau Ceti e">Tau Ceti e (3.65 pc)</option>
+            <option value="Teegarden's Star b">Teegarden's Star b (3.83 pc)</option>
+            <option value="Ross 128 b">Ross 128 b (3.37 pc)</option>
+            <option value="Gliese 667 Cc">Gliese 667 Cc (7.24 pc)</option>
+            <option value="Epsilon Eridani b">Epsilon Eridani b (3.22 pc)</option>
+            <option value="Wolf 1061 c">Wolf 1061 c (4.31 pc)</option>
+            <option value="Luyten b">Luyten b (3.80 pc)</option>
+            <option value="Kapteyn b">Kapteyn b (3.93 pc)</option>
+            <option value="Gliese 1061 d">Gliese 1061 d (3.67 pc)</option>
+            <option value="TOI-700 d">TOI-700 d (31.13 pc)</option>
+            <option value="custom">Custom / Other Target...</option>
+          </select>
+        </div>
+
         <!-- Target Distance -->
         <div class="form-group">
           <div class="label-row">
             <label for="input-dist-pc">Target System Distance</label>
             <span id="val-dist-pc" class="val-display">1.30 pc</span>
           </div>
-          <input type="range" id="input-dist-pc" min="1.0" max="20.0" step="0.5" value="1.3" class="slider">
+          <input type="range" id="input-dist-pc" min="1.0" max="35.0" step="0.5" value="1.3" class="slider">
           <div class="sub-info">Image Cylinder D_img: <span id="val-d-img">~30.7 km</span></div>
         </div>
       </div>
@@ -305,6 +331,145 @@
             <div class="telemetry-compact">
               <span>Design Matrix: 550 - 950 AU × 0.5 - 4.0 m</span>
               <span>Target Science Threshold: <strong>SNR ≥ 10.0</strong></span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Panel 5: Target Exoplanet & Heliocentric Positioning -->
+      <section class="scientific-panel full-width-panel" id="panel-targets">
+        <div class="panel-header">
+          <div class="panel-title-group">
+            <span class="panel-number">5</span>
+            <h2>Target Exoplanet & Heliocentric Positioning (NASA Exoplanet Archive + Astropy)</h2>
+          </div>
+          <div class="target-controls-header">
+            <div class="target-search-box">
+              <select id="select-target" class="form-select form-select-sm">
+                <!-- Curated targets populated via /api/targets -->
+              </select>
+              <input type="text" id="input-target-custom" class="form-input form-input-sm" placeholder="Search name or RA, Dec (e.g. TRAPPIST-1 e)">
+              <div class="arrival-year-wrapper">
+                <label for="input-arrival-year">Arrival Year:</label>
+                <input type="number" id="input-arrival-year" class="form-input form-input-sm year-input" value="2048" min="2026" max="2150" step="1">
+              </div>
+              <button id="btn-fetch-target" class="btn btn-sm btn-primary">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+                Resolve & Track
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="target-telemetry-grid">
+          <!-- Card 1: Target Celestial Coordinates -->
+          <div class="telemetry-box">
+            <div class="box-header">
+              <span class="box-icon icon-target">🎯</span>
+              <div>
+                <h3>Target System (Source)</h3>
+                <span id="target-display-name" class="badge badge-accent">Proxima Centauri b</span>
+              </div>
+            </div>
+            <div class="box-body">
+              <div class="telem-item">
+                <span class="telem-label">Host Star:</span>
+                <span id="telem-target-host" class="telem-val">Proxima Centauri</span>
+              </div>
+              <div class="telem-item">
+                <span class="telem-label">Target RA / Dec:</span>
+                <span id="telem-target-coords" class="telem-val">217.43° / -62.68°</span>
+              </div>
+              <div class="telem-item">
+                <span class="telem-label">Distance:</span>
+                <span id="telem-target-dist" class="telem-val highlight-val">1.30 pc (4.24 ly)</span>
+              </div>
+              <div class="telem-item">
+                <span class="telem-label">Constellation:</span>
+                <span id="telem-target-constellation" class="telem-val">Centaurus</span>
+              </div>
+              <div class="telem-item">
+                <span class="telem-label">Proper Motion (μ_α, μ_δ):</span>
+                <span id="telem-target-pm" class="telem-val">-3781.7, +769.5 mas/yr</span>
+              </div>
+              <div class="telem-item">
+                <span class="telem-label">Planet Radius:</span>
+                <span id="telem-target-radius" class="telem-val">1.03 R⊕</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 2: Required Telescope Position (Antipode) -->
+          <div class="telemetry-box highlight-box">
+            <div class="box-header">
+              <span class="box-icon icon-telescope">🛰️</span>
+              <div>
+                <h3>Telescope Position (Antipode)</h3>
+                <span class="badge badge-success">Focal Line Direction</span>
+              </div>
+            </div>
+            <div class="box-body">
+              <div class="telem-item">
+                <span class="telem-label">Antipodal RA / Dec:</span>
+                <strong id="telem-tel-radec" class="telem-val highlight-cyan">37.42° / +62.68°</strong>
+              </div>
+              <div class="telem-item">
+                <span class="telem-label">Constellation Direction:</span>
+                <strong id="telem-tel-constellation" class="telem-val highlight-gold">Cassiopeia</strong>
+              </div>
+              <div class="telem-item">
+                <span class="telem-label">Heliocentric (X, Y, Z):</span>
+                <span id="telem-tel-xyz" class="telem-val font-mono">(+200.8, +153.1, +488.6) AU</span>
+              </div>
+              <div class="telem-item">
+                <span class="telem-label">Vector Distance |r|:</span>
+                <span id="telem-tel-norm" class="telem-val highlight-val">650.0 AU</span>
+              </div>
+              <div class="telem-item">
+                <span class="telem-label">Ecliptic Longitude (λ):</span>
+                <span id="telem-ecl-lon" class="telem-val">59.04°</span>
+              </div>
+              <div class="telem-item">
+                <span class="telem-label">Ecliptic Inclination (|β|):</span>
+                <strong id="telem-ecl-inc" class="telem-val highlight-purple">44.78° out of ecliptic</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 3: Logistics & Feasibility -->
+          <div class="telemetry-box">
+            <div class="box-header">
+              <span class="box-icon icon-logistics">⚡</span>
+              <div>
+                <h3>Mission Logistics & Feasibility</h3>
+                <span class="badge badge-info">Interstellar Relay</span>
+              </div>
+            </div>
+            <div class="box-body">
+              <div class="telem-item">
+                <span class="telem-label">Comms Light Delay:</span>
+                <strong id="telem-light-delay" class="telem-val highlight-green">3.75 light-days (90.1 hrs)</strong>
+              </div>
+              <div class="telem-item">
+                <span class="telem-label">Cruise Time @ 20 AU/yr:</span>
+                <span id="telem-cruise-time" class="telem-val">32.5 years (Solar Oberth)</span>
+              </div>
+              <div class="telem-item">
+                <span class="telem-label">Projected Image Diameter:</span>
+                <strong id="telem-img-diameter" class="telem-val highlight-gold">D_img ≈ 31.8 km</strong>
+              </div>
+              <div class="telem-item">
+                <span class="telem-label">Lateral Proper-Motion Drift:</span>
+                <span id="telem-pm-drift" class="telem-val highlight-red">28.4 m/s (102.1 km/hr)</span>
+              </div>
+              <div class="telem-item">
+                <span class="telem-label">Annual Focal Cylinder Sweep:</span>
+                <span id="telem-annual-sweep" class="telem-val">895,000 km / year</span>
+              </div>
+              <div class="telem-item">
+                <span class="telem-label">Target Data Source:</span>
+                <span id="telem-data-source" class="telem-val text-muted">Curated SGL Catalog</span>
+              </div>
             </div>
           </div>
         </div>

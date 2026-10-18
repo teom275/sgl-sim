@@ -16,7 +16,8 @@ Adhering strictly to **Journal of Open Source Software (JOSS)** and **Astropy pa
 - **Noise Modeling & Exoplanet Deconvolution:** Baumbach-Allen solar K-coronal brightness backgrounds, per-pixel SNR budgets, and 2D Fourier-space Wiener deconvolution for surface albedo recovery.
 - **Orbital Mechanics & Station-Keeping:** Focal-line hovering $\Delta v$, Keplerian orbital velocities, black hole ISCO checks, and image cylinder scan budgets.
 - **Multi-Extension FITS Exporters:** NASA/Astropy compliant `.fits` files (`CAUSTIC_MAP`, `RAW_DETECTOR`, `DECONV_EXO`, and binary table `PSF_PROFILE`).
-- **Interactive Dark-Mode Mission Dashboard:** Real-time synchronized 4-panel web application.
+- **Real Exoplanet Target Resolver & 3D Heliocentric Telemetry:** Direct resolution via NASA Exoplanet Archive TAP API / Astropy coordinates with curated fallback for top 15 targets (Proxima Cen b, TRAPPIST-1, LHS 1140 b, etc.). Computes exact 3D heliocentric positioning, celestial antipode (RA/Dec), out-of-ecliptic inclination, proper-motion lateral drift velocity, and interstellar light-delay communication budgets.
+- **Interactive Dark-Mode Mission Dashboard:** Real-time synchronized 5-panel web application.
 
 ---
 
@@ -139,6 +140,24 @@ fits_path = export_fits(
 print(f"Saved NASA-standard FITS file to {fits_path}")
 ```
 
+### 6. Real Exoplanet Target Resolver & 3D Heliocentric Telemetry
+```python
+from sgl_sim import resolve_exoplanet, compute_sgl_deployment_vector
+
+# Resolve real exoplanet from NASA Exoplanet Archive (or curated offline catalog)
+target = resolve_exoplanet("Proxima Centauri b")
+print(f"Target: {target['name']} | Host: {target['hostname']} ({target['distance_pc']:.2f} pc)")
+print(f"Target Coordinates: RA {target['ra_deg']:.2f}°, Dec {target['dec_deg']:.2f}° [{target['constellation']}]")
+
+# Compute exact antipodal placement and 3D heliocentric coordinates for arrival in 2048
+ephem = compute_sgl_deployment_vector(target_data=target, z_rec_au=650.0 * u.AU, arrival_year=2048)
+print(f"Required Telescope Direction (Antipode): RA {ephem['telescope_ra_deg']:.2f}°, Dec {ephem['telescope_dec_deg']:+.2f}° [{ephem['telescope_constellation']}]")
+print(f"Heliocentric (X, Y, Z): ({ephem['x_au']:+.1f}, {ephem['y_au']:+.1f}, {ephem['z_au']:+.1f}) AU | Norm: {ephem['vector_norm_au']:.1f} AU")
+print(f"Ecliptic Inclination: {ephem['ecliptic_inclination_deg']:.2f}° out of ecliptic plane")
+print(f"Light-Travel Comms Delay: {ephem['light_delay_days']:.2f} light-days ({ephem['light_delay_hours']:.1f} hours)")
+print(f"Image Cylinder Diameter: D_img ≈ {ephem['image_diameter_km']:.1f} km | Proper-Motion Drift: {ephem['proper_motion_drift_m_s']:.1f} m/s")
+```
+
 ---
 
 ## Interactive Web Mission Dashboard
@@ -162,7 +181,8 @@ Then navigate to `http://127.0.0.1:5000` in your web browser.
 2. **Panel 2 — Transverse Astroid Caustic Explorer:** Interactive 2D focal-plane canvas where dragging the receiver satellite $(x_0, y_0)$ inside or outside the astroid caustic dynamically transitions the system between 4-image Einstein Cross, cusp arc, and 2-image regimes.
 3. **Panel 3 — Telescope Detector Viewport & Wave PSF:** Occulting coronagraph mask, Baumbach-Allen coronal glow, resolved Einstein Ring, and high-resolution radial Bessel $J_0^2$ diffraction profile.
 4. **Panel 4 — Exoplanet Deconvolution & Tradespace Heatmap:** 3-stage visualizer (Ground Truth $\to$ Noisy Detector $\to$ Wiener Reconstruction) and $(z_{\text{rec}}, D_{\text{tel}})$ mission tradespace contours.
-5. **Scientific Export Bar:** Single-click downloads of `.fits`, `.csv`, and `.json` files.
+5. **Panel 5 — Target Exoplanet & Heliocentric Positioning:** Real exoplanet resolver (NASA Exoplanet Archive + SIMBAD + top 15 prime candidates), calculating celestial antipodes, 3D heliocentric $(X,Y,Z)$ vectors, out-of-ecliptic inclination, ~3.2 light-day communication delays, and proper-motion lateral drift velocities.
+6. **Scientific Export Bar:** Single-click downloads of `.fits`, `.csv`, and `.json` files.
 
 ---
 

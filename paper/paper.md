@@ -87,6 +87,7 @@ where $H(f)$ is the optical transfer function computed from the Bessel $J_0^2$ k
 - `sgl_sim.deconvolution`: Baumbach-Allen coronal noise models, SNR budgets, synthetic exoplanet generation, and 2D Wiener filtering.
 - `sgl_sim.orbital`: Keplerian and hovering focal-line orbital mechanics, image cylinder geometry, and station-keeping $\Delta v$.
 - `sgl_sim.tradespace`: Grid evaluators across $(z_{\text{rec}}, D_{\text{tel}})$ mission parameters.
+- `sgl_sim.targets`: NASA Exoplanet Archive and Astropy coordinate resolver, celestial antipodes, 3D heliocentric positioning, and proper-motion focal line drift.
 - `sgl_sim.exporters`: Multi-extension NASA FITS (`astropy.io.fits`), CSV, and JSON exporters.
 - `sgl_sim.web`: A synchronized interactive scientific dashboard powered by Flask, vanilla HTML5/Canvas, and responsive CSS.
 
