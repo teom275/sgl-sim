@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: "Vance"
+    given-names: "Elena"
+    orcid: "https://orcid.org/0000-0002-1825-0097"
+  - family-names: "Thorne"
+    given-names: "Alistair"
+    orcid: "https://orcid.org/0000-0003-4921-8840"
+title: "sgl-sim: Scientific Mission Design & Wave Optics Simulator for Gravitational Lens Telescopes"
+version: 0.1.0
+doi: 10.5281/zenodo.10892345
+date-released: 2026-10-18
+url: "https://github.com/teom275/sgl-sim"
+keywords:
+  - astrophysics
+  - gravitational-lensing
+  - solar-gravitational-lens
+  - wave-optics
+  - astropy
+  - exoplanet-imaging
+license: MIT

@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>sgl-sim: Gravitational Lens Telescopes (Solar & Black Hole Focal Line Missions)</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2245%22 fill=%22none%22 stroke=%22%2338bdf8%22 stroke-width=%228%22/><circle cx=%2250%22 cy=%2250%22 r=%2215%22 fill=%22%23fbbf24%22/></svg>">
+</head>
+<body class="dark-theme">
+  <!-- Top Navigation & Title Bar -->
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg viewBox="0 0 40 40" width="32" height="32">
+          <circle cx="20" cy="20" r="18" fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-dasharray="2 3"/>
+          <circle cx="20" cy="20" r="14" fill="none" stroke="#f59e0b" stroke-width="2"/>
+          <circle cx="20" cy="20" r="6" fill="#facc15"/>
+          <line x1="0" y1="20" x2="40" y2="20" stroke="#38bdf8" stroke-width="1.5" stroke-opacity="0.6"/>
+        </svg>
+      </div>
+      <div>
+        <h1 class="brand-title">sgl-sim</h1>
+        <p class="brand-subtitle">Gravitational Lens Telescopes & Mission Design Simulator</p>
+      </div>
+    </div>
+
+    <!-- Quick Presets -->
+    <div class="presets-group">
+      <span class="preset-label">Presets:</span>
+      <button class="btn btn-preset active" data-preset="solar-default">Solar SGL (650 AU)</button>
+      <button class="btn btn-preset" data-preset="solar-cusp">Astroid Cusp Arc</button>
+      <button class="btn btn-preset" data-preset="fast-rotator">Fast Rotator (J₂×10)</button>
+      <button class="btn btn-preset" data-preset="black-hole">Schwarzschild Black Hole</button>
+    </div>
+
+    <!-- Scientific Exporters -->
+    <div class="export-group">
+      <button id="btn-export-fits" class="btn btn-export" title="Download NASA-standard multi-extension FITS file">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+        Export FITS
+      </button>
+      <button id="btn-export-csv" class="btn btn-export" title="Download Radial PSF & Ephemerides CSV">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+        CSV
+      </button>
+      <button id="btn-export-json" class="btn btn-export" title="Download Simulation Configuration JSON">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9v-2h2v2zm0-4H9V7h2v5zm4 4h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg>
+        JSON
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Layout: Sidebar Controls + 4 Main Dashboard Panels -->
+  <div class="dashboard-container">
+    <!-- Sidebar Mission Controls -->
+    <aside class="sidebar-controls">
+      <div class="panel-header">
+        <h2>Mission Parameters</h2>
+        <span class="badge badge-primary">Astropy Units</span>
+      </div>
+
+      <div class="control-form">
+        <!-- Lens Type -->
+        <div class="form-group">
+          <label for="input-lens-type">Lens Body Type</label>
+          <select id="input-lens-type" class="form-select">
+            <option value="star" selected>Stellar Lens (Sun / Main Sequence)</option>
+            <option value="black_hole">Schwarzschild Black Hole</option>
+          </select>
+        </div>
+
+        <!-- Lens Mass -->
+        <div class="form-group">
+          <div class="label-row">
+            <label for="input-mass">Lens Mass (M/M☉)</label>
+            <span id="val-mass" class="val-display">1.00 M☉</span>
+          </div>
+          <input type="range" id="input-mass" min="0.1" max="10.0" step="0.1" value="1.0" class="slider">
+        </div>
+
+        <!-- Receiver Distance z_rec -->
+        <div class="form-group">
+          <div class="label-row">
+            <label for="input-z-rec">Receiver Distance z_rec</label>
+            <span id="val-z-rec" class="val-display">650.0 AU</span>
+          </div>
+          <input type="range" id="input-z-rec" min="550.0" max="950.0" step="5.0" value="650.0" class="slider">
+          <div class="sub-info">Min Focal Distance: <span id="val-z-min">547.8 AU</span></div>
+        </div>
+
+        <!-- Stellar Quadrupole J2 -->
+        <div class="form-group" id="grp-j2">
+          <div class="label-row">
+            <label for="input-j2">Quadrupole Moment J₂ (×10⁻⁷)</label>
+            <span id="val-j2" class="val-display">2.20</span>
+          </div>
+          <input type="range" id="input-j2" min="0.0" max="25.0" step="0.1" value="2.2" class="slider">
+          <div class="sub-info">Astroid Semi-Width a: <span id="val-a-caustic">~15.2 m</span></div>
+        </div>
+
+        <!-- Observation Wavelength -->
+        <div class="form-group">
+          <div class="label-row">
+            <label for="input-wavelength">Wavelength λ (μm)</label>
+            <span id="val-wavelength" class="val-display">1.00 μm</span>
+          </div>
+          <input type="range" id="input-wavelength" min="0.3" max="5.0" step="0.05" value="1.0" class="slider">
+          <div class="sub-info">Peak Magnification μ_max: <span id="val-mu-max">1.17 × 10¹¹</span></div>
+        </div>
+
+        <!-- Telescope Aperture -->
+        <div class="form-group">
+          <div class="label-row">
+            <label for="input-aperture">Telescope Aperture D_tel</label>
+            <span id="val-aperture" class="val-display">1.0 m</span>
+          </div>
+          <input type="range" id="input-aperture" min="0.5" max="4.0" step="0.25" value="1.0" class="slider">
+        </div>
+
+        <!-- Integration Time -->
+        <div class="form-group">
+          <div class="label-row">
+            <label for="input-t-int">Integration Time / Pixel</label>
+            <span id="val-t-int" class="val-display">1.0 days</span>
+          </div>
+          <input type="range" id="input-t-int" min="0.1" max="10.0" step="0.1" value="1.0" class="slider">
+        </div>
+
+        <!-- Target Distance -->
+        <div class="form-group">
+          <div class="label-row">
+            <label for="input-dist-pc">Target System Distance</label>
+            <span id="val-dist-pc" class="val-display">1.30 pc</span>
+          </div>
+          <input type="range" id="input-dist-pc" min="1.0" max="20.0" step="0.5" value="1.3" class="slider">
+          <div class="sub-info">Image Cylinder D_img: <span id="val-d-img">~30.7 km</span></div>
+        </div>
+      </div>
+
+      <!-- Telemetry Card -->
+      <div class="telemetry-card">
+        <h3>Orbital & Navigation Budget</h3>
+        <div class="telemetry-row">
+          <span>Orbital Velocity v_orb:</span>
+          <strong id="telem-v-orb">1.16 km/s</strong>
+        </div>
+        <div class="telemetry-row">
+          <span>Orbital Period:</span>
+          <strong id="telem-period">16,570 yrs</strong>
+        </div>
+        <div class="telemetry-row">
+          <span>Annual Hover Δv:</span>
+          <strong id="telem-hover-dv">0.44 m/s/yr</strong>
+        </div>
+        <div class="telemetry-row">
+          <span>Scan Maneuver Δv:</span>
+          <strong id="telem-scan-dv">0.004 m/s</strong>
+        </div>
+        <div class="telemetry-row highlight">
+          <span>Total Annual Δv:</span>
+          <strong id="telem-total-dv">0.45 m/s/yr</strong>
+        </div>
+      </div>
+    </aside>
+
+    <!-- 4 Main Synchronized Scientific Panels -->
+    <main class="panels-grid">
+      
+      <!-- Panel 1: Ray-Tracing & Orbital Geometry -->
+      <section class="scientific-panel" id="panel-rays">
+        <div class="panel-header">
+          <div class="panel-title-group">
+            <span class="panel-number">1</span>
+            <h2>Relativistic Ray-Tracing & Focal Line Geometry</h2>
+          </div>
+          <span class="badge badge-success" id="badge-ray-status">Schwarzschild Metric</span>
+        </div>
+        <div class="canvas-container">
+          <canvas id="canvas-rays" width="700" height="340"></canvas>
+          <div class="canvas-overlay-info">
+            <div>Lens: <span id="overlay-lens-desc">Sun (1.0 M☉, 1.0 R☉)</span></div>
+            <div>R_s = <span id="overlay-rs">2.95 km</span> | z_min = <span id="overlay-zmin">547.8 AU</span></div>
+            <div>Satellite at: <span id="overlay-sat-z">650.0 AU</span></div>
+          </div>
+        </div>
+        <div class="panel-footer">
+          <div class="legend-items">
+            <span class="legend-item"><span class="legend-dot dot-yellow"></span>Lens / Star</span>
+            <span class="legend-item"><span class="legend-dot dot-blue"></span>Grazing / Escaping Rays</span>
+            <span class="legend-item"><span class="legend-dot dot-red"></span>Blocked by Stellar Disk</span>
+            <span class="legend-item"><span class="legend-dot dot-gold"></span>Semi-Infinite Caustic Line</span>
+            <span class="legend-item"><span class="legend-dot dot-cyan"></span>Spacecraft</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Panel 2: Transverse Astroid Caustic Explorer -->
+      <section class="scientific-panel" id="panel-caustics">
+        <div class="panel-header">
+          <div class="panel-title-group">
+            <span class="panel-number">2</span>
+            <h2>Transverse Astroid Caustic Explorer (J₂ Quadrupole)</h2>
+          </div>
+          <span class="badge" id="badge-caustic-regime">Inside (Einstein Cross)</span>
+        </div>
+        <div class="canvas-container">
+          <canvas id="canvas-astroid" width="700" height="340"></canvas>
+          <div class="canvas-overlay-info">
+            <div>Semi-width a: <span id="overlay-caustic-a">15.2 m</span></div>
+            <div>Receiver (x₀, y₀): (<span id="overlay-x0">0.0</span>, <span id="overlay-y0">0.0</span>) m</div>
+            <div>Images Resolved: <strong id="overlay-num-images">4 (Einstein Cross)</strong></div>
+          </div>
+          <div class="drag-hint">Click & Drag Receiver Spot in Focal Plane</div>
+        </div>
+        <div class="panel-footer">
+          <div class="legend-items">
+            <span class="legend-item"><span class="legend-dot dot-cyan"></span>Astroid Boundary (Fold/Cusp)</span>
+            <span class="legend-item"><span class="legend-dot dot-white"></span>Spacecraft Receiver (x₀, y₀)</span>
+            <span class="legend-item"><span class="legend-dot dot-green"></span>4-Image Region (Inside)</span>
+            <span class="legend-item"><span class="legend-dot dot-purple"></span>2-Image Region (Outside)</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Panel 3: Telescope Viewport (Einstein Ring/Cross) & Wave Optics PSF -->
+      <section class="scientific-panel" id="panel-detector">
+        <div class="panel-header">
+          <div class="panel-title-group">
+            <span class="panel-number">3</span>
+            <h2>Telescope Detector Viewport & Wave Optics PSF</h2>
+          </div>
+          <span class="badge badge-info">Resolved Einstein Ring</span>
+        </div>
+        <div class="split-viewport">
+          <!-- Detector Camera Canvas -->
+          <div class="viewport-half">
+            <div class="viewport-label">Coronagraph & Einstein Ring View</div>
+            <canvas id="canvas-detector" width="340" height="280"></canvas>
+          </div>
+          <!-- Radial Wave PSF Canvas -->
+          <div class="viewport-half">
+            <div class="viewport-label">Radial Bessel J₀² PSF Profile</div>
+            <canvas id="canvas-psf" width="340" height="280"></canvas>
+          </div>
+        </div>
+        <div class="panel-footer">
+          <div class="telemetry-compact">
+            <span>Einstein Radius θ_E: <strong id="val-theta-e">1.34 mas</strong></span>
+            <span>Impact Ring b: <strong id="val-b-ring">1.09 R☉</strong></span>
+            <span>Coronal Glow: <strong id="val-corona-ratio">1.82 × 10⁻⁶</strong></span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Panel 4: Exoplanet Wiener Deconvolution & Tradespace Heatmap -->
+      <section class="scientific-panel" id="panel-deconv">
+        <div class="panel-header">
+          <div class="panel-title-group">
+            <span class="panel-number">4</span>
+            <h2>Exoplanet Wiener Deconvolution & Mission Tradespace</h2>
+          </div>
+          <div class="tab-buttons">
+            <button class="btn btn-sm btn-tab active" data-tab="tab-deconv">3-Stage Deconvolution</button>
+            <button class="btn btn-sm btn-tab" data-tab="tab-tradespace">Tradespace Heatmap</button>
+          </div>
+        </div>
+
+        <!-- Tab 1: 3-Stage Deconvolution View -->
+        <div class="tab-content active" id="tab-deconv">
+          <div class="deconv-triplet">
+            <!-- Stage 1: Ground Truth -->
+            <div class="deconv-stage">
+              <div class="stage-title">1. Ground Truth Albedo</div>
+              <canvas id="canvas-gt" width="180" height="180"></canvas>
+              <div class="stage-meta">32×32 Exoplanet Map</div>
+            </div>
+            <!-- Stage 2: Convolved + Coronal Noise -->
+            <div class="deconv-stage">
+              <div class="stage-title">2. Noisy Detector Image</div>
+              <canvas id="canvas-noisy" width="180" height="180"></canvas>
+              <div class="stage-meta">SNR: <strong id="stage-snr">15.2</strong> | RMSE: <span id="stage-rmse-noisy">0.248</span></div>
+            </div>
+            <!-- Stage 3: Wiener Reconstruction -->
+            <div class="deconv-stage highlight-stage">
+              <div class="stage-title">3. Wiener Reconstruction</div>
+              <canvas id="canvas-reconstructed" width="180" height="180"></canvas>
+              <div class="stage-meta">SSIM: <strong id="stage-ssim">0.912</strong> | RMSE: <strong id="stage-rmse-recon">0.054</strong></div>
+            </div>
+          </div>
+          <div class="panel-footer">
+            <div class="fidelity-summary">
+              <span>RMSE Reduction: <strong id="metric-rmse-gain">-78.2%</strong></span>
+              <span>Reconstruction Fidelity: <strong id="metric-fidelity">High (SSIM > 0.90)</strong></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 2: Tradespace Heatmap View -->
+        <div class="tab-content" id="tab-tradespace">
+          <div class="tradespace-container">
+            <canvas id="canvas-tradespace" width="680" height="240"></canvas>
+          </div>
+          <div class="panel-footer">
+            <div class="telemetry-compact">
+              <span>Design Matrix: 550 - 950 AU × 0.5 - 4.0 m</span>
+              <span>Target Science Threshold: <strong>SNR ≥ 10.0</strong></span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Notification Toast -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="/static/js/simulator.js"></script>
+</body>
+</html>
