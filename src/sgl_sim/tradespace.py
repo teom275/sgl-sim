@@ -6,10 +6,11 @@ This module evaluates 2D mission tradespace matrices over receiver distance z_re
 and required per-pixel integration time to reach a target science threshold.
 """
 
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Union
 import numpy as np
+from astropy import units as u
 
-from sgl_sim.relativity import AU_SI, PC_SI, M_SUN_SI
+from sgl_sim.relativity import AU_SI, PC_SI, M_SUN_SI, _to_si_value
 from sgl_sim.deconvolution import calculate_snr
 
 
@@ -20,12 +21,12 @@ def evaluate_tradespace(
     aperture_min_m: float = 0.5,
     aperture_max_m: float = 5.0,
     n_aperture: int = 15,
-    ref_integration_time_s: float = 86400.0,
+    ref_integration_time_s: Union[float, u.Quantity] = 86400.0,
     target_snr: float = 10.0,
-    distance_source: float = 1.3 * PC_SI,
-    exoplanet_radius: float = 6.371e6,
-    wavelength: float = 1.0e-6,
-    mass: float = M_SUN_SI,
+    distance_source: Union[float, u.Quantity] = 1.3 * PC_SI,
+    exoplanet_radius: Union[float, u.Quantity] = 6.371e6,
+    wavelength: Union[float, u.Quantity] = 1.0e-6,
+    mass: Union[float, u.Quantity] = M_SUN_SI,
 ) -> Dict[str, Any]:
     """
     Compute a 2D mission tradespace design matrix over (z_rec, aperture_m).
@@ -73,17 +74,23 @@ def evaluate_tradespace(
     snr_matrix = np.zeros((n_z, n_aperture), dtype=float)
     t_req_hours_matrix = np.zeros((n_z, n_aperture), dtype=float)
 
+    t_int_s = _to_si_value(ref_integration_time_s, u.s)
+    d_src = _to_si_value(distance_source, u.m)
+    r_exo = _to_si_value(exoplanet_radius, u.m)
+    lam = _to_si_value(wavelength, u.m)
+    m_val = _to_si_value(mass, u.kg)
+
     for i, z_au in enumerate(z_au_arr):
         z_m = z_au * AU_SI
         for j, ap_m in enumerate(aperture_arr):
             res = calculate_snr(
                 z_rec=z_m,
                 aperture_m=ap_m,
-                integration_time_s=ref_integration_time_s,
-                distance_source=distance_source,
-                exoplanet_radius=exoplanet_radius,
-                wavelength=wavelength,
-                mass=mass,
+                integration_time_s=t_int_s,
+                distance_source=d_src,
+                exoplanet_radius=r_exo,
+                wavelength=lam,
+                mass=m_val,
             )
             snr_val = res["snr"]
             snr_matrix[i, j] = snr_val
@@ -91,7 +98,7 @@ def evaluate_tradespace(
             # In shot/background noise limited regime: SNR ∝ sqrt(t_int)
             # t_req = t_ref * (SNR_target / SNR_ref)^2
             if snr_val > 0:
-                t_req_s = ref_integration_time_s * ((target_snr / snr_val) ** 2)
+                t_req_s = t_int_s * ((target_snr / snr_val) ** 2)
             else:
                 t_req_s = 1e9
             t_req_hours_matrix[i, j] = float(t_req_s / 3600.0)

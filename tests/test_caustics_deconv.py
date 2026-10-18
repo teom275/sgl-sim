@@ -4,6 +4,7 @@ Unit tests for astroid caustics, coronal noise, Wiener deconvolution, and orbita
 
 import pytest
 import numpy as np
+from astropy import units as u
 
 from sgl_sim.relativity import AU_SI, PC_SI, M_SUN_SI, R_SUN_SI
 from sgl_sim.caustics import (
@@ -82,6 +83,32 @@ def test_caustic_regime_and_quadrupole_solver():
     # 3. 360-degree ring profile is computed
     assert len(sol_center["ring_profile"]) == 720
     assert np.max(sol_center["ring_profile"]) == pytest.approx(1.0, rel=1e-4)
+
+
+def test_solve_quadrupole_images_quantity_equivalence():
+    """Verify that passing Quantity objects produces identical image solutions to raw floats."""
+    sol_q = solve_quadrupole_images(
+        x0=5.0 * u.m,
+        y0=-2.0 * u.m,
+        z_rec=650.0 * u.AU,
+        mass=1.0 * u.M_sun,
+        star_radius=1.0 * u.R_sun,
+        wavelength=1.0 * u.micron,
+    )
+    sol_f = solve_quadrupole_images(
+        x0=5.0,
+        y0=-2.0,
+        z_rec=650.0 * AU_SI,
+        mass=M_SUN_SI,
+        star_radius=R_SUN_SI,
+        wavelength=1.0e-6,
+    )
+
+    assert sol_q["regime"] == sol_f["regime"]
+    assert sol_q["num_images"] == sol_f["num_images"]
+    assert np.allclose(sol_q["image_angles_rad"], sol_f["image_angles_rad"], rtol=1e-5)
+    assert np.allclose(sol_q["ring_profile"], sol_f["ring_profile"], rtol=1e-5)
+    assert pytest.approx(sol_q["a_caustic"], rel=1e-5) == sol_f["a_caustic"]
 
 
 def test_baumbach_allen_coronal_brightness():

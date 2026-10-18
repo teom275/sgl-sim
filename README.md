@@ -1,15 +1,15 @@
 # sgl-sim: Gravitational Lens Telescopes & Mission Design Simulator
 
 [![CI and JOSS Review](https://github.com/teom275/sgl-sim/actions/workflows/ci_and_joss.yml/badge.svg)](https://github.com/teom275/sgl-sim/actions)
-[![JOSS Paper](https://img.shields.io/badge/JOSS-10.21105%2Fjoss.sgl--sim-brightgreen)](paper/paper.md)
+[![JOSS Status](https://img.shields.io/badge/JOSS-status%3A%20draft-blue)](paper/paper.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue.svg)](pyproject.toml)
-[![Astropy Affiliated](https://img.shields.io/badge/astropy-affiliated-orange.svg)](https://www.astropy.org/)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.10892345.svg)](https://doi.org/10.5281/zenodo.10892345)
+[![Astropy-compatible](https://img.shields.io/badge/astropy-compatible-orange.svg)](https://www.astropy.org/)
+[![DOI](https://img.shields.io/badge/DOI-pending-lightgrey.svg)](https://github.com/teom275/sgl-sim)
 
 **`sgl-sim`** is an open-source, peer-review-ready scientific Python package and interactive mission-design simulator for **Gravitational Lens Telescopes (Solar & Black Hole Focal Line Missions)**. 
 
-Adhering strictly to **Journal of Open Source Software (JOSS)** and **Astropy affiliated package** standards, `sgl-sim` models:
+Adhering strictly to **Journal of Open Source Software (JOSS)** and **Astropy package** standards, `sgl-sim` models:
 - **Relativistic Null Geodesics:** Schwarzschild metrics, critical photon capture parameters ($b_c = \frac{3\sqrt{3}}{2} R_s$), weak-field deflections, and RK45 numerical null geodesic integration.
 - **Wave Optics & Focal Line Properties:** Finite diffraction-limited Bessel $J_0^2$ point spread functions (PSF), on-axis peak wave magnifications ($\mu_{\max} \sim 10^{11}$), and minimum focal distances ($z_{\min} \approx 547.8\text{ AU}$ for the Sun).
 - **Stellar Oblateness Caustics ($J_2$):** Analytical and numerical solvers for the quadrupolar lens equation, predicting transverse astroid caustics, 4-image Einstein Cross configurations, cusp arcs, and fold bifurcations.
@@ -29,7 +29,7 @@ Adhering strictly to **Journal of Open Source Software (JOSS)** and **Astropy af
 ### Install from Source
 ```bash
 git clone https://github.com/teom275/sgl-sim.git
-cd solar_gravitational_lens_sim
+cd sgl-sim
 
 # Create virtual environment
 python3 -m venv .venv
@@ -82,7 +82,7 @@ mu_max = peak_magnification(wavelength=wavelength)
 print(f"θ_E: {ring['theta_E_arcsec'] * 1000:.2f} mas | μ_max: {mu_max:.2e}")
 
 # Generate 2D normalized Bessel J_0^2 PSF kernel
-psf_kernel_2d = generate_2d_psf(grid_size=32, pixel_scale_m=1.0, z_rec=z_rec.to(u.m).value)
+psf_kernel_2d = generate_2d_psf(grid_size=32, pixel_scale_m=1.0 * u.m, z_rec=z_rec, wavelength=wavelength)
 ```
 
 ### 3. Stellar Oblateness ($J_2$) Astroid Caustics & Einstein Cross
@@ -94,7 +94,7 @@ caustic = astroid_caustic_semi_width(z_rec=650.0 * u.AU, j2=2.2e-7)
 print(f"Astroid Semi-Width: {caustic['a_caustic_m']:.2f} m")
 
 # Receiver inside astroid at (x0, y0) = (0.0, 0.0) m -> 4 images (Einstein Cross)
-sol_inside = solve_quadrupole_images(x0=0.0, y0=0.0, z_rec=(650.0 * u.AU).to(u.m).value)
+sol_inside = solve_quadrupole_images(x0=0.0 * u.m, y0=0.0 * u.m, z_rec=650.0 * u.AU)
 print(f"Regime: {sol_inside['regime']} | Resolved Images: {sol_inside['num_images']}")
 print(f"Image Angles (deg): {[round(deg, 1) for deg in sol_inside['image_angles_deg']]}")
 ```
@@ -143,6 +143,8 @@ print(f"Saved NASA-standard FITS file to {fits_path}")
 
 ## Interactive Web Mission Dashboard
 
+![sgl-sim Interactive Web Mission Dashboard Preview](docs/assets/dashboard_preview.png)
+
 `sgl-sim` provides a synchronized, dark-mode astrophysical dashboard:
 
 ```bash
@@ -183,20 +185,16 @@ All tests verify core astrophysical benchmarks:
 
 ## Citation
 
-If you use `sgl-sim` in your research, mission design studies, or educational activities, please cite the JOSS paper and software repository:
+If you use `sgl-sim` in your research, mission design studies, or educational activities, please cite the JOSS manuscript and software repository:
 
 ### BibTeX
 ```bibtex
-@article{Maggio2026_sglsim,
-  author = {Maggio, Teo and Antigravity},
+@software{Maggio2026_sglsim,
+  author = {Maggio, Teo},
   title = {sgl-sim: Scientific Mission Design & Wave Optics Simulator for Gravitational Lens Telescopes},
-  journal = {Journal of Open Source Software},
   year = {2026},
-  volume = {11},
-  number = {120},
-  pages = {10892},
-  doi = {10.5281/zenodo.10892345},
-  url = {https://github.com/teom275/sgl-sim}
+  howpublished = {\url{https://github.com/teom275/sgl-sim}},
+  note = {Journal of Open Source Software (in review / submission draft)}
 }
 ```
 

@@ -15,6 +15,7 @@ from astropy import units as u
 from sgl_sim.relativity import (
     schwarzschild_radius,
     critical_impact_parameter,
+    _to_si_value,
     M_SUN_SI,
     R_SUN_SI,
     AU_SI,
@@ -218,10 +219,10 @@ def psf_intensity(
 
 def generate_2d_psf(
     grid_size: int,
-    pixel_scale_m: float,
-    z_rec: float,
-    wavelength: float = 1.0e-6,
-    mass: float = M_SUN_SI,
+    pixel_scale_m: Union[float, u.Quantity],
+    z_rec: Union[float, u.Quantity],
+    wavelength: Union[float, u.Quantity] = 1.0e-6,
+    mass: Union[float, u.Quantity] = M_SUN_SI,
     normalize_sum: bool = True,
 ) -> np.ndarray:
     """
@@ -231,14 +232,14 @@ def generate_2d_psf(
     ----------
     grid_size : int
         Number of pixels along each side (e.g. 32).
-    pixel_scale_m : float
-        Physical width of each pixel in meters.
-    z_rec : float
-        Receiver distance in meters.
-    wavelength : float, optional
-        Wavelength in meters.
-    mass : float, optional
-        Lens mass in kg.
+    pixel_scale_m : float or astropy.units.Quantity
+        Physical width of each pixel (in meters if float).
+    z_rec : float or astropy.units.Quantity
+        Receiver distance (in meters if float).
+    wavelength : float or astropy.units.Quantity, optional
+        Wavelength in meters (default: 1.0 um).
+    mass : float or astropy.units.Quantity, optional
+        Lens mass in kg (default: 1 solar mass).
     normalize_sum : bool, optional
         If True, normalizes the array such that sum(kernel) == 1.0.
 
@@ -247,15 +248,20 @@ def generate_2d_psf(
     np.ndarray
         2D array of shape (grid_size, grid_size).
     """
-    coords = (np.arange(grid_size) - (grid_size - 1) / 2.0) * pixel_scale_m
+    pix_scale = _to_si_value(pixel_scale_m, u.m)
+    z_val = _to_si_value(z_rec, u.m)
+    lam_val = _to_si_value(wavelength, u.m)
+    m_val = _to_si_value(mass, u.kg)
+
+    coords = (np.arange(grid_size) - (grid_size - 1) / 2.0) * pix_scale
     xx, yy = np.meshgrid(coords, coords)
     rho_grid = np.sqrt(xx**2 + yy**2)
 
     psf_2d = psf_intensity(
         rho=rho_grid,
-        z_rec=z_rec,
-        wavelength=wavelength,
-        mass=mass,
+        z_rec=z_val,
+        wavelength=lam_val,
+        mass=m_val,
         normalize=True,
     )
 

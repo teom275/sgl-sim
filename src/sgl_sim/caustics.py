@@ -15,6 +15,7 @@ from astropy import units as u
 
 from sgl_sim.relativity import (
     schwarzschild_radius,
+    _to_si_value,
     M_SUN_SI,
     R_SUN_SI,
     AU_SI,
@@ -55,17 +56,11 @@ def astroid_caustic_semi_width(
         - 'b_ring_m': Einstein ring impact parameter in meters
         - 'j2': quadrupole parameter
     """
-    if isinstance(z_rec, u.Quantity):
-        z_m = z_rec.to(u.m).value
-    else:
-        z_m = float(z_rec)
+    z_m = _to_si_value(z_rec, u.m)
+    r_star = _to_si_value(star_radius, u.m)
+    m_val = _to_si_value(mass, u.kg)
 
-    if isinstance(star_radius, u.Quantity):
-        r_star = star_radius.to(u.m).value
-    else:
-        r_star = float(star_radius)
-
-    rs = schwarzschild_radius(mass)
+    rs = schwarzschild_radius(m_val)
     b_ring = np.sqrt(2.0 * rs * z_m)
 
     a_caustic = 2.0 * r_star * float(j2) * (z_m / b_ring)
@@ -78,7 +73,7 @@ def astroid_caustic_semi_width(
 
 
 def parametric_astroid(
-    a_caustic: float,
+    a_caustic: Union[float, u.Quantity],
     num_points: int = 360,
 ) -> Dict[str, np.ndarray]:
     """
@@ -88,8 +83,8 @@ def parametric_astroid(
 
     Parameters
     ----------
-    a_caustic : float
-        Caustic semi-width in meters.
+    a_caustic : float or astropy.units.Quantity
+        Caustic semi-width (in meters if float).
     num_points : int, optional
         Number of boundary coordinates.
 
@@ -98,9 +93,10 @@ def parametric_astroid(
     dict
         Dictionary containing 'theta', 'x', and 'y' arrays.
     """
+    a_val = _to_si_value(a_caustic, u.m)
     theta = np.linspace(0, 2.0 * np.pi, num_points, endpoint=False)
-    x = a_caustic * (np.cos(theta) ** 3)
-    y = a_caustic * (np.sin(theta) ** 3)
+    x = a_val * (np.cos(theta) ** 3)
+    y = a_val * (np.sin(theta) ** 3)
     return {
         "theta": theta,
         "x": x,
@@ -109,9 +105,9 @@ def parametric_astroid(
 
 
 def check_caustic_regime(
-    x0: float,
-    y0: float,
-    a_caustic: float,
+    x0: Union[float, u.Quantity],
+    y0: Union[float, u.Quantity],
+    a_caustic: Union[float, u.Quantity],
     tol: float = 0.03,
 ) -> Dict[str, Any]:
     """
@@ -121,12 +117,12 @@ def check_caustic_regime(
 
     Parameters
     ----------
-    x0 : float
-        Transverse x offset in meters.
-    y0 : float
-        Transverse y offset in meters.
-    a_caustic : float
-        Astroid caustic semi-width in meters.
+    x0 : float or astropy.units.Quantity
+        Transverse x offset (meters if float).
+    y0 : float or astropy.units.Quantity
+        Transverse y offset (meters if float).
+    a_caustic : float or astropy.units.Quantity
+        Astroid caustic semi-width (meters if float).
     tol : float, optional
         Relative tolerance for boundary detection.
 
@@ -136,11 +132,15 @@ def check_caustic_regime(
         Dictionary with 'regime' ('inside', 'cusp_boundary', 'outside'),
         'astroid_val', and 'num_images_expected' (4, 3, or 2).
     """
-    if a_caustic <= 0:
+    a_val = _to_si_value(a_caustic, u.m)
+    x0_val = _to_si_value(x0, u.m)
+    y0_val = _to_si_value(y0, u.m)
+
+    if a_val <= 0:
         return {"regime": "unperturbed", "astroid_val": 0.0, "num_images_expected": 1}
 
-    u_val = abs(x0) / a_caustic
-    v_val = abs(y0) / a_caustic
+    u_val = abs(x0_val) / a_val
+    v_val = abs(y0_val) / a_val
 
     val = (u_val ** (2.0 / 3.0)) + (v_val ** (2.0 / 3.0))
 
@@ -162,13 +162,13 @@ def check_caustic_regime(
 
 
 def solve_quadrupole_images(
-    x0: float,
-    y0: float,
-    z_rec: float,
-    mass: float = M_SUN_SI,
-    star_radius: float = R_SUN_SI,
+    x0: Union[float, u.Quantity],
+    y0: Union[float, u.Quantity],
+    z_rec: Union[float, u.Quantity],
+    mass: Union[float, u.Quantity] = M_SUN_SI,
+    star_radius: Union[float, u.Quantity] = R_SUN_SI,
     j2: float = J2_SUN,
-    wavelength: float = 1.0e-6,
+    wavelength: Union[float, u.Quantity] = 1.0e-6,
     num_grid: int = 720,
 ) -> Dict[str, Any]:
     """
@@ -181,20 +181,20 @@ def solve_quadrupole_images(
 
     Parameters
     ----------
-    x0 : float
-        Transverse receiver coordinate x in meters.
-    y0 : float
-        Transverse receiver coordinate y in meters.
-    z_rec : float
-        Receiver distance in meters.
-    mass : float, optional
-        Lens mass in kg.
-    star_radius : float, optional
-        Lens physical radius in meters.
+    x0 : float or astropy.units.Quantity
+        Transverse receiver coordinate x (in meters if float).
+    y0 : float or astropy.units.Quantity
+        Transverse receiver coordinate y (in meters if float).
+    z_rec : float or astropy.units.Quantity
+        Receiver distance (in meters if float).
+    mass : float or astropy.units.Quantity, optional
+        Lens mass (in kg if float).
+    star_radius : float or astropy.units.Quantity, optional
+        Lens physical radius (in meters if float).
     j2 : float, optional
         Quadrupole moment J2.
-    wavelength : float, optional
-        Observation wavelength in meters.
+    wavelength : float or astropy.units.Quantity, optional
+        Observation wavelength (in meters if float).
     num_grid : int, optional
         Sampling points for root bracket scan and ring profile.
 
@@ -211,17 +211,24 @@ def solve_quadrupole_images(
         - 'ring_profile': array of synthesized ring intensities I(phi)
         - 'a_caustic': astroid semi-width in meters
     """
+    x0_val = _to_si_value(x0, u.m)
+    y0_val = _to_si_value(y0, u.m)
+    z_val = _to_si_value(z_rec, u.m)
+    m_val = _to_si_value(mass, u.kg)
+    r_star_val = _to_si_value(star_radius, u.m)
+    lam_val = _to_si_value(wavelength, u.m)
+
     caustic_info = astroid_caustic_semi_width(
-        z_rec=z_rec, mass=mass, star_radius=star_radius, j2=j2
+        z_rec=z_val, mass=m_val, star_radius=r_star_val, j2=j2
     )
     a_caustic = caustic_info["a_caustic_m"]
-    regime_info = check_caustic_regime(x0, y0, a_caustic)
+    regime_info = check_caustic_regime(x0_val, y0_val, a_caustic)
 
     def f_lens(phi):
-        return x0 * np.sin(phi) - y0 * np.cos(phi) - 0.5 * a_caustic * np.sin(2.0 * phi)
+        return x0_val * np.sin(phi) - y0_val * np.cos(phi) - 0.5 * a_caustic * np.sin(2.0 * phi)
 
     def df_lens(phi):
-        return x0 * np.cos(phi) + y0 * np.sin(phi) - a_caustic * np.cos(2.0 * phi)
+        return x0_val * np.cos(phi) + y0_val * np.sin(phi) - a_caustic * np.cos(2.0 * phi)
 
     # Scan grid for sign changes to bracket all roots in [0, 2*pi)
     phi_grid = np.linspace(0.0, 2.0 * np.pi, num_grid, endpoint=False)
@@ -290,10 +297,10 @@ def solve_quadrupole_images(
 
 
 def generate_caustic_map_2d(
-    z_rec: float,
+    z_rec: Union[float, u.Quantity],
     grid_size: int = 64,
-    mass: float = M_SUN_SI,
-    star_radius: float = R_SUN_SI,
+    mass: Union[float, u.Quantity] = M_SUN_SI,
+    star_radius: Union[float, u.Quantity] = R_SUN_SI,
     j2: float = J2_SUN,
     span_factor: float = 1.6,
 ) -> Dict[str, Any]:
@@ -302,14 +309,14 @@ def generate_caustic_map_2d(
 
     Parameters
     ----------
-    z_rec : float
-        Receiver distance in meters.
+    z_rec : float or astropy.units.Quantity
+        Receiver distance (in meters if float).
     grid_size : int, optional
         Grid resolution along each dimension.
-    mass : float, optional
-        Lens mass in kg.
-    star_radius : float, optional
-        Lens radius in meters.
+    mass : float or astropy.units.Quantity, optional
+        Lens mass (in kg if float).
+    star_radius : float or astropy.units.Quantity, optional
+        Lens radius (in meters if float).
     j2 : float, optional
         Quadrupole moment J2.
     span_factor : float, optional

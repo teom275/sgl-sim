@@ -138,3 +138,42 @@ def test_optics_psf_profile_and_2d_kernel():
     kernel = generate_2d_psf(grid_size=32, pixel_scale_m=1.0, z_rec=z_rec_m, wavelength=lam, normalize_sum=True)
     assert kernel.shape == (32, 32)
     assert pytest.approx(1.0, rel=1e-4) == np.sum(kernel)
+
+
+def test_generate_2d_psf_quantity_equivalence():
+    """Verify that passing astropy.units.Quantity vs float produces identical kernels."""
+    z_rec_q = 650.0 * u.AU
+    z_rec_m = (650.0 * u.AU).to(u.m).value
+    pix_scale_q = 1.5 * u.m
+    pix_scale_m = 1.5
+    lam_q = 1.2 * u.micron
+    lam_m = 1.2e-6
+    mass_q = 1.0 * u.M_sun
+    mass_kg = const.M_sun.value
+
+    kernel_quantities = generate_2d_psf(
+        grid_size=16,
+        pixel_scale_m=pix_scale_q,
+        z_rec=z_rec_q,
+        wavelength=lam_q,
+        mass=mass_q,
+        normalize_sum=True,
+    )
+
+    kernel_floats = generate_2d_psf(
+        grid_size=16,
+        pixel_scale_m=pix_scale_m,
+        z_rec=z_rec_m,
+        wavelength=lam_m,
+        mass=mass_kg,
+        normalize_sum=True,
+    )
+
+    assert np.allclose(kernel_quantities, kernel_floats, rtol=1e-7, atol=1e-10)
+
+
+def test_strong_geodesic_with_quantity():
+    """Verify that integrate_strong_geodesic accepts Quantity objects."""
+    bc = critical_impact_parameter(1.0 * u.M_sun)
+    res_q = integrate_strong_geodesic(impact_param=1.5 * bc * u.m, mass=1.0 * u.M_sun)
+    assert res_q["status"] == "escaped"

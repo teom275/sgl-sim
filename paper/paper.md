@@ -11,13 +11,9 @@ tags:
 authors:
   - name: Teo Maggio
     affiliation: 1
-  - name: Antigravity
-    affiliation: 2
 affiliations:
   - name: Independent Researcher
     index: 1
-  - name: Advanced Agentic Coding, Google DeepMind
-    index: 2
 date: 18 October 2026
 bibliography: paper.bib
 ---
@@ -84,7 +80,7 @@ where $H(f)$ is the optical transfer function computed from the Bessel $J_0^2$ k
 
 # Software Architecture
 
-`sgl-sim` is organized as an Astropy-affiliated scientific package structured in a clean `src/` layout:
+`sgl-sim` is organized as an Astropy-compatible scientific package structured in a clean `src/` layout:
 - `sgl_sim.relativity`: Schwarzschild metrics, weak-field deflections, and strong-field null geodesic integrators.
 - `sgl_sim.optics`: Focal line geometry, wave-optics Bessel PSF synthesis, and Einstein ring properties.
 - `sgl_sim.caustics`: Analytical and numerical solutions to the $J_2$ quadrupolar lens equation, astroid geometry, and azimuthal ring intensity profiles.
@@ -96,6 +92,6 @@ where $H(f)$ is the optical transfer function computed from the Bessel $J_0^2$ k
 
 # Acknowledgements
 
-The authors acknowledge foundational research on the Solar Gravitational Lens conducted by Slava G. Turyshev and Viktor T. Toth, as well as the broader Astropy community for developing core astronomical infrastructure [@Astropy2022; @Virtanen2020].
+The author acknowledges foundational research on the Solar Gravitational Lens conducted by Slava G. Turyshev and Viktor T. Toth, as well as the broader Astropy community for developing core astronomical infrastructure [@Astropy2022; @Virtanen2020]. Software architecture, wave-optics algorithms, and code scaffolding were developed with assistance from Antigravity (Advanced Agentic Coding, Google DeepMind).
 
 # References

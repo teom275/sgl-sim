@@ -46,3 +46,6 @@ coverage.xml
 .vscode/
 *.swp
 *~
+
+# GitHub Actions workflow local mirror (pushed via ci/ci_and_joss.yml)
+.github/

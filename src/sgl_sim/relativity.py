@@ -21,6 +21,13 @@ AU_SI = const.au.value
 PC_SI = const.pc.value
 
 
+def _to_si_value(val: Union[float, int, u.Quantity], default_unit: u.Unit) -> float:
+    """Helper to convert float, int, or astropy.units.Quantity to a float in SI units."""
+    if isinstance(val, u.Quantity):
+        return float(val.to(default_unit).value)
+    return float(val)
+
+
 def schwarzschild_radius(mass: Union[float, u.Quantity]) -> float:
     """
     Calculate the Schwarzschild radius of a spherically symmetric body.
@@ -37,10 +44,7 @@ def schwarzschild_radius(mass: Union[float, u.Quantity]) -> float:
     float
         Schwarzschild radius in meters.
     """
-    if isinstance(mass, u.Quantity):
-        m_val = mass.to(u.kg).value
-    else:
-        m_val = float(mass)
+    m_val = _to_si_value(mass, u.kg)
     return float(2.0 * G_SI * m_val / (C_SI**2))
 
 
@@ -179,8 +183,8 @@ def focal_distance(
 
 
 def integrate_strong_geodesic(
-    impact_param: float,
-    mass: float = M_SUN_SI,
+    impact_param: Union[float, u.Quantity],
+    mass: Union[float, u.Quantity] = M_SUN_SI,
     x_start: float = -50.0,
     max_tau: float = 3.0 * np.pi,
     num_points: int = 400,
@@ -196,10 +200,10 @@ def integrate_strong_geodesic(
 
     Parameters
     ----------
-    impact_param : float
-        Impact parameter b in meters.
-    mass : float, optional
-        Black hole mass in kg (default: 1 solar mass).
+    impact_param : float or astropy.units.Quantity
+        Impact parameter b (in meters if float).
+    mass : float or astropy.units.Quantity, optional
+        Black hole mass (in kg if float, default: 1 solar mass).
     x_start : float, optional
         Starting x-coordinate in units of impact_param (negative, e.g. -50.0).
     max_tau : float, optional
@@ -222,7 +226,7 @@ def integrate_strong_geodesic(
     """
     rs = schwarzschild_radius(mass)
     bc = critical_impact_parameter(mass)
-    b = float(impact_param)
+    b = _to_si_value(impact_param, u.m)
 
     # Initial position in Cartesian coordinates
     # Start at x0 < 0, y0 = b

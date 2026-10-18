@@ -7,7 +7,7 @@ exoplanet deconvolution around Solar and Black Hole Gravitational Lenses.
 """
 
 __version__ = "0.1.0"
-__author__ = "Teo Maggio & Antigravity"
+__author__ = "Teo Maggio"
 
 from sgl_sim.relativity import (
     schwarzschild_radius,

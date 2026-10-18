@@ -3,10 +3,9 @@ message: "If you use this software, please cite it as below."
 authors:
   - family-names: "Maggio"
     given-names: "Teo"
-  - name: "Antigravity"
 title: "sgl-sim: Scientific Mission Design & Wave Optics Simulator for Gravitational Lens Telescopes"
 version: 0.1.0
-doi: 10.5281/zenodo.10892345
+doi: "10.5281/zenodo.pending"
 date-released: 2026-10-18
 url: "https://github.com/teom275/sgl-sim"
 keywords:
