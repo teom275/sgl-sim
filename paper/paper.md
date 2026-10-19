@@ -10,6 +10,7 @@ tags:
   - astropy
 authors:
   - name: Teo Maggio
+    orcid: 0009-0008-8025-8576
     affiliation: 1
 affiliations:
   - name: Independent Researcher

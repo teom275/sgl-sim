@@ -5,6 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue.svg)](pyproject.toml)
 [![Astropy-compatible](https://img.shields.io/badge/astropy-compatible-orange.svg)](https://www.astropy.org/)
+[![ORCID](https://img.shields.io/badge/ORCID-0009--0008--8025--8576-A6CE39.svg?logo=orcid&logoColor=white)](https://orcid.org/0009-0008-8025-8576)
 [![DOI](https://img.shields.io/badge/DOI-pending-lightgrey.svg)](https://github.com/teom275/sgl-sim)
 
 **`sgl-sim`** is an open-source, peer-review-ready scientific Python package and interactive mission-design simulator for **Gravitational Lens Telescopes (Solar & Black Hole Focal Line Missions)**. 
@@ -256,6 +257,8 @@ If you use `sgl-sim` in your research, mission design studies, or educational ac
   note = {Journal of Open Source Software (in review / submission draft)}
 }
 ```
+
+**Lead Author:** Teo Maggio ([ORCID: 0009-0008-8025-8576](https://orcid.org/0009-0008-8025-8576))
 
 ---
 

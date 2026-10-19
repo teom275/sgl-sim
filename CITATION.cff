@@ -3,6 +3,7 @@ message: "If you use this software, please cite it as below."
 authors:
   - family-names: "Maggio"
     given-names: "Teo"
+    orcid: "https://orcid.org/0009-0008-8025-8576"
 title: "sgl-sim: Scientific Mission Design & Wave Optics Simulator for Gravitational Lens Telescopes"
 version: 0.1.0
 doi: "10.5281/zenodo.pending"
