@@ -177,8 +177,11 @@
           <section class="panel">
             <h4 data-i18n="m.where">Where to send the spacecraft</h4>
             <p class="panel-lede" data-i18n="m.where.lede">The spacecraft must sit on the far side of the Sun from the planet.</p>
-            <figure class="canvas sky"><canvas id="cv-sky" aria-label="All-sky map of where the solar lens is easiest to use"></canvas></figure>
-            <p class="hint" data-i18n="m.sky">How easy it is to reach the focal line in each direction of the sky (brighter is easier). Dots are the 12 candidates; the ring marks the selected one.</p>
+            <figure class="canvas sky" id="sky-fig">
+              <canvas id="cv-sky" aria-label="All-sky map of where the solar lens is easiest to use. Each dot is a candidate; select one to open its mission."></canvas>
+              <div class="sky-tip" id="sky-tip" role="tooltip" hidden></div>
+            </figure>
+            <p class="hint" data-i18n="m.sky">How easy it is to reach the focal line in each direction of the sky (brighter is easier). Each dot is a candidate: hover to see its name, click to open its mission. The ring marks the selected one.</p>
             <dl class="readout">
               <dt data-i18n="m.point">Telescope pointing</dt><dd id="m-point"></dd>
               <dt data-i18n="m.const">Constellation</dt><dd id="m-const"></dd>
@@ -206,10 +209,20 @@
           <section class="panel">
             <h4 data-i18n="m.imaging">One spacecraft or a swarm?</h4>
             <p class="panel-lede" data-i18n="m.imaging.lede">The planet turns during the scan, which smears the image. Several spacecraft scan in parallel and finish sooner.</p>
-            <div class="compare">
+            <div class="surface-pick" role="radiogroup" aria-labelledby="surface-label">
+              <span id="surface-label" data-i18n="m.surface">Surface</span>
+              <div class="seg-group">
+                <button type="button" role="radio" class="seg" data-surface="planet" aria-checked="true" data-i18n="m.surf.planet">Simulated planet</button>
+                <button type="button" role="radio" class="seg" data-surface="earth" aria-checked="false" data-i18n="m.surf.earth">Earth</button>
+                <button type="button" role="radio" class="seg" data-surface="moon" aria-checked="false" data-i18n="m.surf.moon">Moon</button>
+              </div>
+            </div>
+            <div class="compare three">
+              <figure><div class="canvas square"><canvas id="cv-b0" aria-label="Actual surface"></canvas></div><figcaption id="m-b0"></figcaption></figure>
               <figure><div class="canvas square"><canvas id="cv-b1" aria-label="Reconstruction with one spacecraft"></canvas></div><figcaption id="m-b1"></figcaption></figure>
               <figure><div class="canvas square"><canvas id="cv-bn" aria-label="Reconstruction with a swarm"></canvas></div><figcaption id="m-bn"></figcaption></figure>
             </div>
+            <p class="hint" id="m-surface-note"></p>
             <p class="status" id="m-verdict"></p>
             <h4 class="sub" data-i18n="m.shared">Shared trajectory</h4>
             <p class="panel-text" id="m-shared"></p>

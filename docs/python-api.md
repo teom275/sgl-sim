@@ -12,6 +12,7 @@ The examples below run in order as a single script: later examples reuse variabl
 - [5. NASA multi-extension FITS export](#5-nasa-multi-extension-fits-export)
 - [6. Real exoplanet target resolver & 3D heliocentric telemetry](#6-real-exoplanet-target-resolver--3d-heliocentric-telemetry)
 - [7. Exoplanet triage, sky efficiency & swarm motion blur](#7-exoplanet-triage-sky-efficiency--swarm-motion-blur)
+- [8. What would the Earth look like? Reference bodies](#8-what-would-the-earth-look-like-reference-bodies)
 
 ## Modules at a glance
 
@@ -25,6 +26,7 @@ The examples below run in order as a single script: later examples reuse variabl
 | `sgl_sim.tradespace` | Distance × aperture SNR trade | `evaluate_tradespace` |
 | `sgl_sim.targets` | Exoplanet resolver and deployment geometry | `resolve_exoplanet`, `compute_sgl_deployment_vector`, `list_curated_targets`, `TOP_15_SGL_TARGETS` |
 | `sgl_sim.triage` | Feasibility scoring, sky map, swarm motion blur | `score_exoplanet_candidate`, `get_ranked_catalog`, `generate_sky_efficiency_map`, `check_mission_coalignment`, `compute_motion_blur`, `CATALOG_12_CANDIDATES` |
+| `sgl_sim.reference_bodies` | Earth and Moon albedo maps to compare image quality against a familiar world | `earth_albedo_map`, `moon_albedo_map`, `reference_body_map`, `REFERENCE_BODIES` |
 | `sgl_sim.exporters` | FITS, CSV and JSON output | `build_simulation_fits_hdulist`, `export_fits`, `export_csv`, `export_json` |
 
 Each function's docstring documents its parameters, units and returned keys, for example `help(sgl_sim.solve_quadrupole_images)`.
@@ -186,4 +188,24 @@ print(f"Swarm (N=8) Blur: eta = {swarm['eta_blur']:.2f} (RMSE: {swarm['rmse']:.3
 active = [{"name": "TRAPPIST-1 e", "ra_deg": 346.62, "dec_deg": -5.04}]
 coalign = check_mission_coalignment(active, new_target_ra=346.62, new_target_dec=-5.04)
 print(f"Co-aligned? {coalign['is_coaligned']} -> {coalign['message']}")
+```
+
+## 8. What would the Earth look like? Reference bodies
+```python
+from sgl_sim import compute_motion_blur, reference_body_map
+
+# Image a cloud-free Earth (or the Moon's near side) as if it were Tau Ceti e:
+# same image size, rotation and noise, only the surface changes.
+earth = reference_body_map("earth", grid_size=32)
+for n in (1, 8):
+    res = compute_motion_blur(
+        image_diameter_km=19.8,
+        planet_rot_period_hours=35.0,
+        tidally_locked=False,
+        num_satellites=n,
+        ground_truth=earth,
+    )
+    print(f"N={n}: smear {res['eta_blur']:.2f}x | RMSE {res['rmse']:.3f} | SSIM {res['ssim']:.2f}")
+# N=1: smear 8.17x | RMSE 0.056 | SSIM 0.83
+# N=8: smear 1.02x | RMSE 0.048 | SSIM 0.88
 ```
