@@ -51,4 +51,4 @@ coverage.xml
 .github/
 
 # ManimGL render output (manimgl writes ./videos by default)
-videos/
+/videos/
