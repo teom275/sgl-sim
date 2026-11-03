@@ -514,6 +514,30 @@
   bindRange("p-lam", "o-lam", (v) => `${v.toFixed(2)} µm`, (v) => { psfS.lam = v; updatePsf(); });
   bindRange("p-z", "o-pz", (v) => `${v.toFixed(0)} AU`, (v) => { psfS.z = v; updatePsf(); });
 
+  // ===================================================================
+  // Ranked targets (docs/sim/targets.json, exported from sgl_sim)
+  // ===================================================================
+  const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  fetch("sim/targets.json")
+    .then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(({ targets }) => {
+      $("targets-body").innerHTML = targets.map((t, i) => {
+        const tier = t.tier.replace(/^Tier \d: /, "");
+        const low = t.sgl_score < 60;
+        return `<tr class="${low ? "low" : ""}">
+          <td class="num">${i + 1}</td>
+          <td class="planet"><b>${esc(t.name)}</b><span>${esc(t.description)}</span></td>
+          <td class="num">${t.dist_pc.toFixed(2)} pc<br><small>${(t.dist_pc * 3.2616).toFixed(1)} ly</small></td>
+          <td class="num">${t.image_diameter_km.toFixed(1)} km</td>
+          <td>${esc(t.telescope_constellation)}</td>
+          <td class="score"><span class="score-bar"><i style="width:${t.sgl_score}%"></i></span>${t.sgl_score.toFixed(1)}<small>${esc(tier)}</small></td>
+        </tr>`;
+      }).join("");
+    })
+    .catch(() => {
+      $("targets-body").innerHTML = '<tr><td colspan="6" class="empty">The ranking could not be loaded. Reload the page to try again.</td></tr>';
+    });
+
   updateFocal();
   updateCaustic();
   updatePsf();

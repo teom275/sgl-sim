@@ -21,6 +21,7 @@
       <a href="#focal-line">Focal line</a>
       <a href="#caustic">Einstein cross</a>
       <a href="#psf">Wave optics</a>
+      <a href="#targets">Best targets</a>
       <a href="#videos">Demo videos</a>
       <a id="nav-dashboard" href="#" hidden>Mission dashboard</a>
       <a href="https://github.com/teom275/sgl-sim">GitHub</a>
@@ -132,6 +133,30 @@
           </dl>
         </div>
       </div>
+    </section>
+
+    <!-- Ranked targets -->
+    <section class="scene" id="targets" aria-labelledby="h-targets">
+      <h2 id="h-targets">Which planets should a solar-lens telescope image first?</h2>
+      <p class="lede">Each known nearby planet gets a feasibility score out of 100, computed for a spacecraft at 650 AU. The score weighs how much light reaches the detector (30%), how long the image takes to scan (25%), how close the target is to the ecliptic, where it is cheaper to fly (25%), and how little the planet's rotation blurs the scan (20%).</p>
+      <div class="table-wrap">
+        <table class="targets">
+          <thead>
+            <tr>
+              <th scope="col" class="num">#</th>
+              <th scope="col">Planet</th>
+              <th scope="col" class="num">Distance</th>
+              <th scope="col" class="num">Planet image</th>
+              <th scope="col">Telescope points to</th>
+              <th scope="col">Score</th>
+            </tr>
+          </thead>
+          <tbody id="targets-body">
+            <tr><td colspan="6" class="empty">Loading the ranking…</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="hint">"Planet image" is the diameter of the planet's image at the focal line, which is the area the spacecraft has to scan. The telescope points away from the planet, towards the opposite side of the sky. Scores come from <code>sgl_sim.get_ranked_catalog</code>.</p>
     </section>
 
     <!-- Videos -->
