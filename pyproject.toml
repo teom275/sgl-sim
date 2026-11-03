@@ -46,6 +46,10 @@ test = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
 ]
+# Production web server for the hosted dashboard (see render.yaml).
+server = [
+    "gunicorn>=21.2",
+]
 # Interactive 3Blue1Brown-style scenes (src/sgl_sim/manim_scenes). ManimGL 1.7.x
 # still imports pkg_resources and pydub (audioop), hence the two shims.
 manim = [
@@ -65,6 +69,11 @@ Repository = "https://github.com/teom275/sgl-sim.git"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+# Ship the dashboard's HTML/CSS/JS with the package; without this a regular
+# (non-editable) install, such as the Render deployment, has no templates.
+"sgl_sim.web" = ["templates/*.html", "static/css/*.css", "static/js/*.js"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

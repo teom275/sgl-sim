@@ -19,7 +19,8 @@ def test_index_route(client):
     resp = client.get("/")
     assert resp.status_code == 200
     assert b"sgl-sim" in resp.data
-    assert b"Relativistic Ray-Tracing" in resp.data
+    assert b"Relativistic ray tracing" in resp.data
+    assert b"dashboard.js" in resp.data
 
 
 def test_api_simulate_endpoint(client):
@@ -79,3 +80,21 @@ def test_api_export_csv_and_json_endpoints(client):
     assert resp_json.status_code == 200
     assert resp_json.mimetype == "application/json"
     assert b"z_min_au" in resp_json.data
+
+
+def test_api_simulate_black_hole_without_oblateness_is_valid_json(client):
+    """J2 = 0 (black-hole preset) must not emit NaN, which browsers cannot parse."""
+    import json
+
+    resp = client.post("/api/simulate", json={"lens_type": "black_hole", "mass_solar": 5.0, "j2": 0.0})
+    assert resp.status_code == 200
+    data = json.loads(resp.get_data(as_text=True), parse_constant=lambda c: pytest.fail(f"non-JSON constant {c}"))
+    assert len(data["ray_bundle"]) > 0
+
+
+def test_api_simulate_psf_samples_the_core(client):
+    """The radial PSF grid must resolve the centimetre-scale core."""
+    data = client.post("/api/simulate", json={"z_rec_au": 650.0, "wavelength_um": 1.0}).get_json()
+    assert data["psf_core_m"] == pytest.approx(0.0491, rel=1e-2)
+    assert data["psf_rho_m"][-1] == pytest.approx(8 * data["psf_core_m"])
+    assert min(data["psf_j0_sq"]) < 1e-3  # first dark ring is inside the grid
