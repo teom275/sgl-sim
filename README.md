@@ -226,6 +226,36 @@ Then navigate to `http://127.0.0.1:5000` in your web browser.
 
 ---
 
+## Interactive ManimGL Scenes (3Blue1Brown `manim`)
+
+![sgl-sim ManimGL interactive scenes](docs/assets/manim_scenes_preview.png)
+
+`sgl_sim.manim_scenes` holds three interactive scenes built on [ManimGL](https://github.com/3b1b/manim), the animation engine 3Blue1Brown uses for its videos. Each scene first plays a short animated demo. After that the window stays open and every control is live. All the numbers come from the regular `sgl_sim` API.
+
+```bash
+pip install -e ".[manim]"          # ManimGL + small compatibility shims
+
+manimgl src/sgl_sim/manim_scenes/sgl_interactive.py SolarLensFocalLine
+manimgl src/sgl_sim/manim_scenes/sgl_interactive.py EinsteinCrossExplorer
+manimgl src/sgl_sim/manim_scenes/sgl_interactive.py WavePSFExplorer
+```
+
+| Scene | What you can do |
+|---|---|
+| `SolarLensFocalLine` | Drag the lens mass, lens radius and receiver distance. Rays cross the axis at $z(b) = b^2 / 2R_s$, the focal line starts at $z_{\min}$, and the Einstein-ring ray pair that reaches the spacecraft is highlighted. Readouts show $\theta_E$ and $\mu_{\max}$. |
+| `EinsteinCrossExplorer` | Drag the receiver (or click anywhere) in the focal plane. The $J_2$ astroid caustic grows and shrinks with $J_2$ and $z_{\text{rec}}$. The telescope view shows the 4 → 2 image transition (Einstein cross) and the azimuthal brightness of the ring. |
+| `WavePSFExplorer` | Change the wavelength and $z_{\text{rec}}$ to see the $J_0^2$ PSF profile, a 2D transverse-plane image, the radius of the first dark ring (about 5 cm at 650 AU and 1 µm) and the peak gain. |
+
+Useful ManimGL flags:
+- `-w` renders the demo to an MP4 without opening a window.
+- `-s` saves only the final frame.
+- `-l` / `-m` render at lower resolution.
+- `-e` opens an IPython shell on the live scene (e.g. `self.s_mass.set_value(2.0)`).
+
+No LaTeX installation is needed. The drawing geometry lives in `sgl_sim/manim_scenes/model.py`, which is pure NumPy and is tested in `tests/test_manim_model.py`.
+
+---
+
 ## Running Automated Tests
 
 Run the complete test suite with coverage reporting:

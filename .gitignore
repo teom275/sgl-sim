@@ -49,3 +49,6 @@ coverage.xml
 
 # GitHub Actions workflow local mirror (pushed via ci/ci_and_joss.yml)
 .github/
+
+# ManimGL render output (manimgl writes ./videos by default)
+videos/
