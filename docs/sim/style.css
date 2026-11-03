@@ -118,6 +118,23 @@ dl.readout .flare { color: var(--flare); }
 }
 .btn:hover { border-color: var(--dim); }
 
+/* ---------- ranked targets ---------- */
+.table-wrap { overflow-x: auto; background: var(--surface); border-radius: var(--radius-fig); }
+table.targets { width: 100%; border-collapse: collapse; font-size: 15px; }
+.targets th { text-align: left; font-weight: 500; font-size: 13px; color: var(--dim); padding: 12px 14px; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+.targets td { padding: 12px 14px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+.targets tbody tr:last-child td { border-bottom: 0; }
+.targets .num { text-align: right; white-space: nowrap; }
+.targets .planet { min-width: 240px; }
+.targets .planet b { font-weight: 500; display: block; }
+.targets .planet span { color: var(--dim); font-size: 13px; line-height: 1.45; display: block; margin-top: 2px; max-width: 52ch; }
+.targets .score { min-width: 170px; white-space: nowrap; }
+.targets .score-bar { display: inline-block; vertical-align: middle; width: 90px; height: 6px; border-radius: 3px; background: var(--rule); margin-right: 10px; overflow: hidden; }
+.targets .score-bar i { display: block; height: 100%; border-radius: 3px; background: var(--sol); }
+.targets tr.low .score-bar i { background: var(--flare); }
+.targets .score small { display: block; color: var(--dim); font-size: 12px; margin-top: 2px; white-space: normal; }
+.targets .empty { color: var(--dim); }
+
 /* ---------- videos ---------- */
 .videos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
 .videos figure { margin: 0; }
