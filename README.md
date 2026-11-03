@@ -12,7 +12,7 @@
 
 | | |
 |---|---|
-| **Web simulator** | <https://teom275.github.io/sgl-sim/>: runs in the browser, no install |
+| **Web simulator** | <https://teom275.github.io/sgl-sim/>: runs in the browser, no install, in English or [Spanish](https://teom275.github.io/sgl-sim/?lang=es) |
 | **Mission dashboard** | Flask app, run it locally or [deploy it to Render](#mission-dashboard) |
 | **Python API** | [`docs/python-api.md`](docs/python-api.md): examples and module reference |
 | **Paper** | [`paper/paper.md`](paper/paper.md) (JOSS draft) |
@@ -57,7 +57,14 @@ The best candidates come from `sgl_sim.get_ranked_catalog()`, which scores a cur
 | 11 | TOI-700 d | 31.13 pc | +86.9° | 1.5 km | Draco | **47.8** | Tier 3 |
 | 12 | Kepler-186 f | 178.50 pc | -62.8° | 0.3 km | Puppis | **38.9** | Tier 3 |
 
-"Planet image" is the diameter of the planet's image at the focal line, which is the area the spacecraft must scan. Tier 1 targets suit a single craft or a swarm. Tier 3 targets sit far from the ecliptic and need a costly launch. The [web simulator](https://teom275.github.io/sgl-sim/#targets) shows the same ranking with a short note on each planet. The dashboard's **Triage** tab can score any planet you enter.
+"Planet image" is the diameter of the planet's image at the focal line, which is the area the spacecraft must scan. Tier 1 targets suit a single craft or a swarm. Tier 3 targets sit far from the ecliptic and need a costly launch. The [web simulator's mission planner](https://teom275.github.io/sgl-sim/#targets) opens a full mission profile for each planet:
+- where to send the spacecraft (pointing, heliocentric position, distance from the ecliptic, all-sky map)
+- the trip (cruise time, signal delay, image size, drift, scan Δv)
+- whether one spacecraft is enough or a swarm is needed
+- the score breakdown
+- which other targets share the trajectory
+
+The dashboard's **Triage** tab can also score any planet you enter.
 
 ```python
 from sgl_sim import get_ranked_catalog, score_exoplanet_candidate
@@ -111,14 +118,16 @@ The static site in [`docs/`](docs/) runs entirely in the browser. It contains:
 - the focal line, with a draggable spacecraft
 - the astroid caustic and Einstein cross
 - the wave-optics PSF
-- the ranked target table
+- the mission planner for the 12 ranked targets
 - the ManimGL demo videos
+
+It is available in English and Spanish. Use the language button in the header, or add `?lang=es` to the URL. The page also remembers the last choice. Translations live in [`docs/sim/i18n.js`](docs/sim/i18n.js).
 
 [`docs/sim/physics.js`](docs/sim/physics.js) is a JavaScript port of the `sgl_sim` formulas and gives the same numbers as the Python API.
 
 - **Publish:** in the repository settings, open *Pages* and deploy from the `main` branch, `/docs` folder.
 - **Link the dashboard:** set `DASHBOARD_URL` in [`docs/sim/config.js`](docs/sim/config.js).
-- **Refresh the target table:** after changing the catalogue or the scoring, run `python scripts/export_site_targets.py`. A test fails if the table is stale.
+- **Refresh the mission data:** the planner has no server, so `python scripts/export_site_targets.py` precomputes everything with the Python API: ranking, deployment geometry, single vs. swarm blur, co-alignment and the sky map. Re-run it after changing the catalogue or the models. A test fails if `docs/sim/targets.json` is stale.
 
 ---
 
@@ -194,7 +203,7 @@ No LaTeX installation is needed. The drawing geometry lives in `sgl_sim/manim_sc
 | `src/sgl_sim/manim_scenes/` | ManimGL scenes and their NumPy geometry |
 | `docs/` | GitHub Pages site (web simulator, demo videos) and [`python-api.md`](docs/python-api.md) |
 | `tests/` | pytest suite |
-| `scripts/` | `export_site_targets.py` (site target table), `generate_preview.py` (static matplotlib preview) |
+| `scripts/` | `export_site_targets.py` (precomputed mission data for the site), `generate_preview.py` (static matplotlib preview) |
 | `paper/` | JOSS manuscript and bibliography |
 | `ci/` | GitHub Actions workflow for tests and the JOSS paper build |
 | `render.yaml` | Render deployment blueprint |
@@ -218,7 +227,7 @@ It also covers:
 - the target resolver and triage scoring
 - the Flask API, including valid JSON for every preset
 - the ManimGL scene geometry
-- that the web simulator's target table matches the Python ranking
+- that the web simulator's mission data matches the Python API
 
 ---
 
