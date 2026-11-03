@@ -19,7 +19,7 @@ Adhering strictly to **Journal of Open Source Software (JOSS)** and **Astropy pa
 - **Multi-Extension FITS Exporters:** NASA/Astropy compliant `.fits` files (`CAUSTIC_MAP`, `RAW_DETECTOR`, `DECONV_EXO`, and binary table `PSF_PROFILE`).
 - **Real Exoplanet Target Resolver & 3D Heliocentric Telemetry:** Direct resolution via NASA Exoplanet Archive TAP API / Astropy coordinates with curated fallback for top 15 targets (Proxima Cen b, TRAPPIST-1, LHS 1140 b, etc.). Computes exact 3D heliocentric positioning, celestial antipode (RA/Dec), out-of-ecliptic inclination, proper-motion lateral drift velocity, and interstellar light-delay communication budgets.
 - **SGL Target Triage, Sky Efficiency & Swarm Motion-Blur Analyzer:** Universal SGL Feasibility Index ($0-100$) and mission Tier classifier based on photon SNR, scan logistics, ecliptic access ($\cos^2\beta$), and blur immunity; full-sky Solar Lens efficiency map ($72 \times 36$); trajectory co-alignment analyzer ($\Delta \theta \le 3.0^\circ$); and single-spacecraft vs. multi-satellite swarm ($N=1 \dots 16$) rotational motion-blur modeling ($\eta_{\text{blur}} = t_{\text{scan}} / t_{\text{blur}}$).
-- **Interactive Dark-Mode Mission Dashboard:** Real-time synchronized 6-panel web application.
+- **Interactive Mission Dashboard & Web Simulator:** a hosted Flask dashboard plus a static in-browser simulator on GitHub Pages.
 
 ---
 
@@ -199,30 +199,46 @@ print(f"Co-aligned? {coalign['is_coaligned']} -> {coalign['message']}")
 
 ---
 
-## Interactive Web Mission Dashboard
+## Try it online
 
-![sgl-sim Interactive Web Mission Dashboard Preview](docs/assets/dashboard_preview.png)
+- **Web simulator** (GitHub Pages, no install): <https://teom275.github.io/sgl-sim/>. It runs the focal-line, Einstein-cross and wave-optics scenes in the browser and includes the ManimGL demo videos. The site lives in [`docs/`](docs/).
+- **Mission dashboard** (Flask app on Render): deploy your own copy with one click.
 
-`sgl-sim` provides a synchronized, dark-mode astrophysical dashboard:
+  [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/teom275/sgl-sim)
+
+![sgl-sim web simulator](docs/assets/web_simulator.png)
+
+---
+
+## Mission Dashboard
+
+![sgl-sim mission dashboard](docs/assets/dashboard.png)
+
+A web app for designing a lens mission. Every number comes from the Python API.
 
 ```bash
-# Launch server via CLI entry point
-sgl-sim-server --host 127.0.0.1 --port 5000
+# Local development server
+sgl-sim-server --host 127.0.0.1 --port 5000      # or: python -m sgl_sim.web.app
 
-# Or via Python module execution
-python -m sgl_sim.web.app
+# Production server (what Render runs)
+pip install ".[server]"
+gunicorn --bind 0.0.0.0:8000 sgl_sim.web.app:app
 ```
 
-Then navigate to `http://127.0.0.1:5000` in your web browser.
+Then open `http://127.0.0.1:5000`.
 
-### Key Interactive Features:
-1. **Panel 1 — Relativistic Ray-Tracing Canvas:** Real-time ray tracing around the Sun or a Schwarzschild Black Hole, displaying the photon sphere, grazing rays, stellar occultation, and the golden caustic focal line.
-2. **Panel 2 — Transverse Astroid Caustic Explorer:** Interactive 2D focal-plane canvas where dragging the receiver satellite $(x_0, y_0)$ inside or outside the astroid caustic dynamically transitions the system between 4-image Einstein Cross, cusp arc, and 2-image regimes.
-3. **Panel 3 — Telescope Detector Viewport & Wave PSF:** Occulting coronagraph mask, Baumbach-Allen coronal glow, resolved Einstein Ring, and high-resolution radial Bessel $J_0^2$ diffraction profile.
-4. **Panel 4 — Exoplanet Deconvolution & Tradespace Heatmap:** 3-stage visualizer (Ground Truth $\to$ Noisy Detector $\to$ Wiener Reconstruction) and $(z_{\text{rec}}, D_{\text{tel}})$ mission tradespace contours.
-5. **Panel 5 — Target Exoplanet & Heliocentric Positioning:** Real exoplanet resolver (NASA Exoplanet Archive + SIMBAD + top 15 prime candidates), calculating celestial antipodes, 3D heliocentric $(X,Y,Z)$ vectors, out-of-ecliptic inclination, ~3.2 light-day communication delays, and proper-motion lateral drift velocities.
-6. **Panel 6 — SGL Target Triage, Sky Efficiency & Swarm Motion-Blur Analyzer:** Interactive $72 \times 36$ all-sky Solar Lens efficiency map, candidate evaluator with trajectory co-alignment detector ($\Delta \theta \le 3.0^\circ$), side-by-side single craft ($N=1$) vs. swarm fleet ($N=1\dots16$) rotational motion-blur comparator, and ranked candidate catalog table.
-7. **Scientific Export Bar:** Single-click downloads of `.fits`, `.csv`, and `.json` files.
+- **Optical-axis ruler:** shows the Sun, where the focal line begins and where the spacecraft sits. Below it are the headline numbers: z_min, Einstein ring, peak gain, per-pixel SNR and the planet image size.
+- **Optics:** weak-field ray bundle for a star, or strong-field geodesics around a black hole. Also the J₀² PSF profile and the telescope view of the Einstein ring.
+- **Caustic:** drag the spacecraft across the J₂ astroid and watch the four images merge into two.
+- **Imaging:** ground truth → detector → Wiener reconstruction, and the SNR trade across distance × aperture.
+- **Targets:** NASA Exoplanet Archive / curated resolver with antipodal pointing, heliocentric position, light delay and proper-motion drift.
+- **Triage:** all-sky efficiency map, feasibility scoring with co-alignment check, single craft vs. swarm motion blur, and the ranked catalogue.
+- **Downloads:** FITS, CSV and JSON of the current scenario.
+
+### Hosting
+
+- **Dashboard on Render:** [`render.yaml`](render.yaml) is a Render blueprint for the free plan. Use the button above, or in Render choose *New → Blueprint* and pick this repository. It redeploys on every push to `main`.
+- **Web simulator on GitHub Pages:** in the repository settings, open *Pages* and serve from the `main` branch, `/docs` folder. To link the dashboard from the site, set `DASHBOARD_URL` in [`docs/sim/config.js`](docs/sim/config.js).
 
 ---
 

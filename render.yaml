@@ -1,0 +1,15 @@
+# Render blueprint for the sgl-sim mission dashboard (Flask API + web UI).
+# One-click deploy: https://render.com/deploy?repo=https://github.com/teom275/sgl-sim
+services:
+  - type: web
+    name: sgl-sim-dashboard
+    runtime: python
+    plan: free
+    branch: main
+    autoDeploy: true
+    buildCommand: pip install ".[server]"
+    startCommand: gunicorn --bind 0.0.0.0:$PORT --workers 2 --timeout 120 sgl_sim.web.app:app
+    healthCheckPath: /
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.7"

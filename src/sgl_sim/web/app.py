@@ -144,8 +144,10 @@ def run_full_simulation(params: Dict[str, Any]) -> Dict[str, Any]:
     ring_props = einstein_ring_properties(z_rec=z_rec_m, mass=mass_kg)
     mu_max = peak_magnification(wavelength=wavelength_m, mass=mass_kg)
 
-    # Radial PSF profile (0 to 60 meters transverse)
-    rho_arr = np.linspace(0.0, 40.0, 120)
+    # Radial PSF profile out to ~8 dark rings. The core radius is only a few
+    # centimetres (2.405 / (k theta_E)), so a fixed metre-scale grid would miss it.
+    psf_core_m = 2.404825557695773 / ((2.0 * np.pi / wavelength_m) * ring_props["theta_E_rad"])
+    rho_arr = np.linspace(0.0, 8.0 * psf_core_m, 240)
     psf_vals = psf_intensity(rho=rho_arr, z_rec=z_rec_m, wavelength=wavelength_m, mass=mass_kg, normalize=True)
     psf_actual = psf_intensity(rho=rho_arr, z_rec=z_rec_m, wavelength=wavelength_m, mass=mass_kg, normalize=False)
 
@@ -161,7 +163,9 @@ def run_full_simulation(params: Dict[str, Any]) -> Dict[str, Any]:
 
     # 2D Caustic map (32x32)
     caustic_map_res = generate_caustic_map_2d(z_rec=z_rec_m, grid_size=32, mass=mass_kg, star_radius=R_SUN_SI, j2=j2)
-    caustic_2d = caustic_map_res["caustic_intensity_2d"]
+    # With J2 = 0 the astroid collapses to a point and the map is 0/0; send zeros
+    # instead of NaN, which is not valid JSON.
+    caustic_2d = np.nan_to_num(caustic_map_res["caustic_intensity_2d"], nan=0.0, posinf=0.0, neginf=0.0)
 
     # 4. Deconvolution
     snr_dict = calculate_snr(
@@ -213,6 +217,7 @@ def run_full_simulation(params: Dict[str, Any]) -> Dict[str, Any]:
         "b_ring_r_sun": ring_props["b_ring_r_sun"],
         "theta_E_arcsec": ring_props["theta_E_arcsec"],
         "mu_max": mu_max,
+        "psf_core_m": float(psf_core_m),
         "psf_rho_m": rho_arr.tolist(),
         "psf_intensity": psf_actual.tolist(),
         "psf_j0_sq": psf_vals.tolist(),
