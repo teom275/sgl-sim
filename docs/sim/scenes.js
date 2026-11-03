@@ -553,14 +553,16 @@
   };
 
   /** Paint a 2D array into a w×h box via an offscreen bitmap. */
-  function paintMatrix(ctx, w, h, M, cmap, { flipY = false, smooth = false } = {}) {
+  function paintMatrix(ctx, w, h, M, cmap, { flipY = false, smooth = false, range = null } = {}) {
     const ny = M.length, nx = M[0].length;
     const off = document.createElement("canvas");
     off.width = nx; off.height = ny;
     const o = off.getContext("2d");
     const img = o.createImageData(nx, ny);
     let lo = Infinity, hi = -Infinity;
-    for (const row of M) for (const v of row) { if (v < lo) lo = v; if (v > hi) hi = v; }
+    if (range) { [lo, hi] = range; } else {
+      for (const row of M) for (const v of row) { if (v < lo) lo = v; if (v > hi) hi = v; }
+    }
     for (let j = 0; j < ny; j++) {
       const row = M[flipY ? ny - 1 - j : j];
       for (let i = 0; i < nx; i++) {
@@ -574,7 +576,18 @@
     ctx.drawImage(off, 0, 0, w, h);
   }
 
-  let planner = null;   // { data, index }
+  let planner = null;   // { data, index, surface }
+
+  /** Decode a base64 uint8 image (row 0 = north) into an n×n matrix in [0, 1]. */
+  const imgCache = new Map();
+  function decodeImage(b64, n) {
+    if (imgCache.has(b64)) return imgCache.get(b64);
+    const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    const M = [];
+    for (let j = 0; j < n; j++) M.push(Array.from(bytes.subarray(j * n, (j + 1) * n), (v) => v / 255));
+    imgCache.set(b64, M);
+    return M;
+  }
 
   const skyScene = canvasScene($("cv-sky"), (ctx, w, h) => {
     if (!planner) return;
@@ -589,20 +602,101 @@
       const x = X(t.telescope_ra_deg), y = Y(t.telescope_dec_deg);
       ctx.fillStyle = C.ink;
       ctx.beginPath(); ctx.arc(x, y, 3, 0, 2 * Math.PI); ctx.fill();
-      if (i === planner.index) {
-        ctx.strokeStyle = C.ink; ctx.lineWidth = 2;
+      if (i === planner.index || i === skyHover) {
+        ctx.strokeStyle = C.ink; ctx.lineWidth = i === planner.index ? 2 : 1;
         ctx.beginPath(); ctx.arc(x, y, 9, 0, 2 * Math.PI); ctx.stroke();
       }
     });
+    skyScene.pos = targets.map((t) => [X(t.telescope_ra_deg), Y(t.telescope_dec_deg)]);
   });
 
+  // Sky dots: hover shows the planet, click opens its mission.
+  let skyHover = -1;
+  (function bindSky() {
+    const cv = $("cv-sky");
+    const tip = $("sky-tip");
+    const nearest = (e) => {
+      if (!planner || !skyScene.pos) return -1;
+      const r = cv.getBoundingClientRect();
+      const px = e.clientX - r.left, py = e.clientY - r.top;
+      let best = -1, bestD = (e.pointerType === "touch" ? 22 : 14) ** 2;
+      skyScene.pos.forEach(([x, y], i) => {
+        const d = (x - px) ** 2 + (y - py) ** 2;
+        if (d < bestD) { bestD = d; best = i; }
+      });
+      return best;
+    };
+    // Planets of one system share a sky position (e.g. TRAPPIST-1 d, e, f).
+    const groupOf = (i) => {
+      const [x0, y0] = skyScene.pos[i];
+      return skyScene.pos.map(([x, y], j) => ((x - x0) ** 2 + (y - y0) ** 2 < 9 ? j : -1)).filter((j) => j >= 0);
+    };
+    const show = (i) => {
+      if (i === skyHover) return;
+      skyHover = i;
+      cv.style.cursor = i >= 0 ? "pointer" : "default";
+      if (i < 0) { tip.hidden = true; skyScene.render(); return; }
+      const group = groupOf(i);
+      const t = planner.data.targets[i];
+      const [x, y] = skyScene.pos[i];
+      // "TRAPPIST-1 d, e, f" rather than repeating the host name.
+      const full = group.map((j) => planner.data.targets[j].name).sort();
+      const host = full[0].replace(/ \S+$/, "");
+      const names = full.length > 1 && full.every((n) => n.startsWith(host + " "))
+        ? esc(`${host} ${full.map((n) => n.slice(host.length + 1)).join(", ")}`)
+        : full.map(esc).join(", ");
+      const action = group.length > 1
+        ? T("m.sky.cycle", null, "Click to switch between them")
+        : (i === planner.index ? "" : T("m.sky.open", null, "Click to open its mission"));
+      tip.innerHTML = `${names}<small>${esc(t.telescope_constellation)}${group.length > 1 ? "" : ` · ${N(t.sgl_score, 1)}/100`}${action ? ` · ${esc(action)}` : ""}</small>`;
+      tip.hidden = false;
+      const half = tip.offsetWidth / 2;
+      tip.style.left = `${Math.min(Math.max(x, half + 4), cv.clientWidth - half - 4)}px`;
+      tip.style.top = `${y}px`;
+      skyScene.render();
+    };
+    cv.addEventListener("pointermove", (e) => show(nearest(e)));
+    cv.addEventListener("pointerleave", () => show(-1));
+    cv.addEventListener("click", (e) => {
+      const i = nearest(e);
+      if (i < 0) return;
+      const group = groupOf(i);
+      const at = group.indexOf(planner.index);
+      const next = at >= 0 ? group[(at + 1) % group.length] : group[0];
+      skyHover = -1;
+      select(next, false);
+      show(next);
+    });
+  })();
+
+  // Same scale for the truth and both reconstructions, so they compare fairly.
+  // The scale follows the surface's own brightness (98th percentile on the disk),
+  // otherwise a dark world such as the cloud-free Earth would look almost black.
+  const maxCache = new Map();
+  function displayMax(truthB64, n) {
+    if (!maxCache.has(truthB64)) {
+      const vals = decodeImage(truthB64, n).flat().filter((v) => v > 0).sort((a, b) => a - b);
+      maxCache.set(truthB64, vals.length ? Math.max(vals[Math.floor(0.98 * (vals.length - 1))], 0.05) : 1);
+    }
+    return maxCache.get(truthB64);
+  }
   const blurScene = (id, key) => canvasScene($(id), (ctx, w, h) => {
     if (!planner) return;
-    const t = planner.data.targets[planner.index];
-    paintMatrix(ctx, w, h, t.mission.blur[key].image, albedo);
+    const d = planner.data;
+    const b64 = key === "truth"
+      ? d.surfaces[planner.surface]
+      : d.targets[planner.index].mission.blur[key].surfaces[planner.surface].image;
+    paintMatrix(ctx, w, h, decodeImage(b64, d.grid), albedo, { range: [0, displayMax(d.surfaces[planner.surface], d.grid)] });
   });
+  const blur0 = blurScene("cv-b0", "truth");
   const blur1 = blurScene("cv-b1", "single");
   const blurN = blurScene("cv-bn", "swarm");
+
+  document.querySelectorAll("[data-surface]").forEach((b) => b.addEventListener("click", () => {
+    if (!planner) return;
+    planner.surface = b.dataset.surface;
+    renderMission();
+  }));
 
   function renderTable() {
     const { targets } = planner.data;
@@ -659,11 +753,23 @@
       `<span class="label">${esc(T(k, null, en))}</span><span class="bar"><i style="width:${Math.round(v * 100)}%"></i></span><span>${N(v, 2)}</span>`
     ).join("");
 
-    const cap = (r, title) => `<b>${esc(title)}</b>${esc(T("m.smear",
-      { x: N(r.eta_blur, 2), h: N(r.scan_time_hours, 2), e: N(r.rmse, 3) },
-      `smear ${N(r.eta_blur, 2)}× · scan ${N(r.scan_time_hours, 2)} h · error ${N(r.rmse, 3)}`))}`;
+    const surf = planner.surface;
+    document.querySelectorAll("[data-surface]").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.surface === surf)));
+    const cap = (r, title) => {
+      const q = r.surfaces[surf];
+      return `<b>${esc(title)}</b>${esc(T("m.smear", { x: N(r.eta_blur, 2), h: N(r.scan_time_hours, 2) },
+        `smear ${N(r.eta_blur, 2)}× · scan ${N(r.scan_time_hours, 2)} h`))}<br>${esc(T("m.err", { e: N(q.rmse, 3), s: N(q.ssim, 2) },
+        `error ${N(q.rmse, 3)} · similarity ${N(q.ssim, 2)}`))}`;
+    };
+    $("m-b0").innerHTML = `<b>${esc(T("m.truth", null, "Actual surface"))}</b>${esc(T("m.truth.cap", null, "what the lens is trying to capture"))}`;
     $("m-b1").innerHTML = cap(one, T("m.one", null, "One spacecraft"));
     $("m-bn").innerHTML = cap(many, T("m.swarm", { n: d.swarm_size }, `Swarm of ${d.swarm_size}`));
+    const notes = {
+      planet: `A synthetic ocean world with continents and ice caps: nobody knows yet what ${t.name} really looks like. Choose Earth or Moon to compare with a familiar body.`,
+      earth: `What a cloud-free Earth would look like on this mission: same distance, rotation and noise as ${t.name}, only the surface changes. Resolution: 32 × 32 pixels.`,
+      moon: `What the Moon's near side (schematic map of its maria) would look like on this mission: same distance, rotation and noise as ${t.name}, only the surface changes.`,
+    };
+    $("m-surface-note").textContent = T(`m.surf.note.${surf}`, { name: t.name }, notes[surf]);
     const verdict = $("m-verdict");
     if (one.is_blurred) {
       verdict.dataset.tone = "flare";
@@ -681,7 +787,7 @@
       ? T("m.shared.yes", { list: joined }, `The same fleet can also observe ${joined} with a minor trajectory correction (within 3°).`)
       : T("m.shared.no", null, "No other candidate lies within 3°, so this mission cannot be shared.");
 
-    skyScene.render(); blur1.render(); blurN.render();
+    skyScene.render(); blur0.render(); blur1.render(); blurN.render();
   }
 
   function select(i, focus) {
@@ -705,7 +811,7 @@
 
   fetch("sim/targets.json")
     .then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
-    .then((data) => { planner = { data, index: 0 }; select(0, false); })
+    .then((data) => { planner = { data, index: 0, surface: "planet" }; select(0, false); })
     .catch(() => {
       $("targets-body").innerHTML = `<tr><td colspan="6" class="empty">${esc(T("targets.error", null, "The ranking could not be loaded. Reload the page to try again."))}</td></tr>`;
     });

@@ -64,6 +64,12 @@ from sgl_sim.triage import (
     check_mission_coalignment,
     CATALOG_12_CANDIDATES,
 )
+from sgl_sim.reference_bodies import (
+    earth_albedo_map,
+    moon_albedo_map,
+    reference_body_map,
+    REFERENCE_BODIES,
+)
 from sgl_sim.exporters import (
     build_simulation_fits_hdulist,
     export_fits,
@@ -112,6 +118,10 @@ __all__ = [
     "generate_sky_efficiency_map",
     "check_mission_coalignment",
     "CATALOG_12_CANDIDATES",
+    "earth_albedo_map",
+    "moon_albedo_map",
+    "reference_body_map",
+    "REFERENCE_BODIES",
     "build_simulation_fits_hdulist",
     "export_fits",
     "export_csv",

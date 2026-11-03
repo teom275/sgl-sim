@@ -30,6 +30,7 @@
 - **Orbits and station keeping:** focal-line hover Δv, scan Δv, image-cylinder size, and black-hole ISCO.
 - **Targets:** resolver for the NASA Exoplanet Archive (TAP, with a curated offline catalogue of 15 targets). It returns the antipodal telescope pointing, 3D heliocentric position, ecliptic inclination, light delay and proper-motion drift.
 - **Triage:** 0–100 feasibility score and mission tier, all-sky efficiency map, multi-target co-alignment check, and rotational motion blur for one spacecraft vs. a swarm.
+- **Reference bodies:** cloud-free Earth and schematic near-side Moon albedo maps (`earth_albedo_map`, `moon_albedo_map`) that plug into any imaging routine as `ground_truth`.
 - **Export:** multi-extension FITS (`CAUSTIC_MAP`, `RAW_DETECTOR`, `DECONV_EXO`, `PSF_PROFILE`), CSV and JSON.
 
 ---
@@ -60,7 +61,7 @@ The best candidates come from `sgl_sim.get_ranked_catalog()`, which scores a cur
 "Planet image" is the diameter of the planet's image at the focal line, which is the area the spacecraft must scan. Tier 1 targets suit a single craft or a swarm. Tier 3 targets sit far from the ecliptic and need a costly launch. The [web simulator's mission planner](https://teom275.github.io/sgl-sim/#targets) opens a full mission profile for each planet:
 - where to send the spacecraft (pointing, heliocentric position, distance from the ecliptic, all-sky map)
 - the trip (cruise time, signal delay, image size, drift, scan Δv)
-- whether one spacecraft is enough or a swarm is needed
+- whether one spacecraft is enough or a swarm is needed. A toggle swaps in the surface of the **Earth or the Moon**, keeping the target's distance, rotation and noise, as a reference for image quality.
 - the score breakdown
 - which other targets share the trajectory
 
@@ -198,7 +199,7 @@ No LaTeX installation is needed. The drawing geometry lives in `sgl_sim/manim_sc
 
 | Path | Contents |
 |---|---|
-| `src/sgl_sim/` | Physics modules (relativity, optics, caustics, deconvolution, orbital, tradespace, targets, triage, exporters) |
+| `src/sgl_sim/` | Physics modules (relativity, optics, caustics, deconvolution, orbital, tradespace, targets, triage, reference bodies, exporters) |
 | `src/sgl_sim/web/` | Flask dashboard: `app.py` (API), `templates/`, `static/` |
 | `src/sgl_sim/manim_scenes/` | ManimGL scenes and their NumPy geometry |
 | `docs/` | GitHub Pages site (web simulator, demo videos) and [`python-api.md`](docs/python-api.md) |
@@ -226,6 +227,7 @@ The suite checks the physics benchmarks:
 It also covers:
 - the target resolver and triage scoring
 - the Flask API, including valid JSON for every preset
+- the Earth/Moon reference maps
 - the ManimGL scene geometry
 - that the web simulator's mission data matches the Python API
 
