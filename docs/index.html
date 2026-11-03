@@ -4,185 +4,244 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>sgl-sim: the Sun as a telescope</title>
-  <meta name="description" content="Interactive simulator of the solar gravitational lens: ray bending and the focal line, the J2 astroid caustic and Einstein cross, and the wave-optics point-spread function.">
+  <meta name="description" content="Interactive simulator of the solar gravitational lens: ray bending and the focal line, the J2 astroid caustic and Einstein cross, the wave-optics PSF, and a mission planner for the best exoplanet targets. English and Spanish.">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2310131a'/%3E%3Cpath d='M3 10 L13 10 L29 16 M3 22 L13 22 L29 16' stroke='%23a9d2ff' stroke-width='1.6' fill='none'/%3E%3Ccircle cx='12' cy='16' r='4.5' fill='%23ffc24b'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="sim/style.css">
+  <script src="sim/i18n.js"></script>
 </head>
 <body>
   <header class="wrap topbar">
-    <a class="wordmark" href="./" aria-label="sgl-sim home">
+    <a class="wordmark" href="./" aria-label="sgl-sim">
       <svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" fill="#1e2330"/><path d="M3 10 L13 10 L29 16 M3 22 L13 22 L29 16" stroke="#a9d2ff" stroke-width="1.6" fill="none"/><circle cx="12" cy="16" r="4.5" fill="#ffc24b"/></svg>
       sgl-sim
     </a>
     <nav aria-label="Sections">
-      <a href="#focal-line">Focal line</a>
-      <a href="#caustic">Einstein cross</a>
-      <a href="#psf">Wave optics</a>
-      <a href="#targets">Best targets</a>
-      <a href="#videos">Demo videos</a>
-      <a id="nav-dashboard" href="#" hidden>Mission dashboard</a>
+      <a href="#focal-line" data-i18n="nav.focal">Focal line</a>
+      <a href="#caustic" data-i18n="nav.caustic">Einstein cross</a>
+      <a href="#psf" data-i18n="nav.psf">Wave optics</a>
+      <a href="#targets" data-i18n="nav.targets">Mission planner</a>
+      <a href="#videos" data-i18n="nav.videos">Demo videos</a>
+      <a id="nav-dashboard" href="#" hidden data-i18n="nav.dashboard">Mission dashboard</a>
       <a href="https://github.com/teom275/sgl-sim">GitHub</a>
+      <button type="button" class="lang" id="lang-toggle" lang="es" aria-label="Cambiar a español">Español</button>
     </nav>
   </header>
 
   <main class="wrap">
     <section class="hero">
-      <h1>The Sun bends starlight into a telescope 550 AU long.</h1>
-      <p>Light from a distant planet that grazes the Sun is deflected by 1.75 arcseconds and meets the optical axis far beyond Pluto. Out there a spacecraft sees the planet magnified about a hundred billion times. Move the sliders, or drag the spacecraft along the axis.</p>
+      <h1 data-i18n="hero.title">The Sun bends starlight into a telescope 550 AU long.</h1>
+      <p data-i18n="hero.text">Light from a distant planet that grazes the Sun is deflected by 1.75 arcseconds and meets the optical axis far beyond Pluto. Out there a spacecraft sees the planet magnified about a hundred billion times. Move the sliders, or drag the spacecraft along the axis.</p>
     </section>
 
     <!-- Scene 1: focal line -->
     <section class="scene" id="focal-line" aria-labelledby="h-focal">
-      <h2 id="h-focal">From bent rays to a focal line</h2>
-      <p class="lede">A ray passing at distance <i>b</i> from the lens centre crosses the axis at <i>z</i> = <i>b</i>²/2<i>R</i><sub>s</sub>. Rays that touch the limb focus first, at <i>z</i><sub>min</sub>. Every point beyond is in focus: that is the focal line. Rays closer in hit the star.</p>
+      <h2 id="h-focal" data-i18n="focal.h">From bent rays to a focal line</h2>
+      <p class="lede" data-i18n="focal.lede">A ray passing at distance <i>b</i> from the lens centre crosses the axis at <i>z</i> = <i>b</i>²/2<i>R</i><sub>s</sub>. Rays that touch the limb focus first, at <i>z</i><sub>min</sub>. Every point beyond is in focus: that is the focal line. Rays closer in hit the star.</p>
       <div class="stage">
         <div>
           <figure class="canvas wide">
             <canvas id="cv-focal" aria-label="Ray diagram: light bent by the lens converging on the optical axis"></canvas>
-            <figcaption>Not to scale: angles are exaggerated tens of thousands of times.</figcaption>
+            <figcaption data-i18n="focal.cap">Not to scale: angles are exaggerated tens of thousands of times.</figcaption>
           </figure>
-          <p class="hint">Drag the spacecraft along the axis to set its distance.</p>
+          <p class="hint" data-i18n="focal.hint">Drag the spacecraft along the axis to set its distance.</p>
         </div>
         <div class="controls">
           <div class="ctl">
-            <label for="f-mass">Lens mass <output id="o-mass">1.00 M☉</output></label>
+            <label for="f-mass"><span data-i18n="focal.mass">Lens mass</span> <output id="o-mass">1.00 M☉</output></label>
             <input id="f-mass" type="range" min="0.3" max="4" step="0.01" value="1">
           </div>
           <div class="ctl">
-            <label for="f-rad">Lens radius <output id="o-rad">1.00 R☉</output></label>
+            <label for="f-rad"><span data-i18n="focal.rad">Lens radius</span> <output id="o-rad">1.00 R☉</output></label>
             <input id="f-rad" type="range" min="0.3" max="2.4" step="0.01" value="1">
           </div>
           <div class="ctl">
-            <label for="f-z">Spacecraft distance <output id="o-z">650 AU</output></label>
+            <label for="f-z"><span data-i18n="focal.z">Spacecraft distance</span> <output id="o-z">650 AU</output></label>
             <input id="f-z" type="range" min="100" max="1950" step="5" value="650">
           </div>
           <div class="status" id="f-status" role="status"></div>
           <dl class="readout">
-            <dt>Focal line starts at</dt><dd class="sol" id="r-zmin"></dd>
-            <dt>Ray reaching the spacecraft</dt><dd id="r-b"></dd>
-            <dt>Einstein ring radius</dt><dd id="r-theta"></dd>
-            <dt>Peak gain at 1 µm</dt><dd id="r-mu"></dd>
+            <dt data-i18n="focal.dt.zmin">Focal line starts at</dt><dd class="sol" id="r-zmin"></dd>
+            <dt data-i18n="focal.dt.b">Ray reaching the spacecraft</dt><dd id="r-b"></dd>
+            <dt data-i18n="focal.dt.theta">Einstein ring radius</dt><dd id="r-theta"></dd>
+            <dt data-i18n="focal.dt.mu">Peak gain at 1 µm</dt><dd id="r-mu"></dd>
           </dl>
-          <button class="btn" type="button" id="f-reset">Reset to the Sun</button>
+          <button class="btn" type="button" id="f-reset" data-i18n="focal.reset">Reset to the Sun</button>
         </div>
       </div>
     </section>
 
     <!-- Scene 2: caustic -->
     <section class="scene" id="caustic" aria-labelledby="h-caustic">
-      <h2 id="h-caustic">An oblate Sun turns the focus into an astroid</h2>
-      <p class="lede">The Sun is slightly flattened by its rotation (quadrupole moment <i>J</i><sub>2</sub>). Instead of a single focal point, the receiver plane holds a four-cusped caustic. Inside it the telescope sees four images of the planet on the Einstein ring; outside it, two.</p>
+      <h2 id="h-caustic" data-i18n="caustic.h">An oblate Sun turns the focus into an astroid</h2>
+      <p class="lede" data-i18n="caustic.lede">The Sun is slightly flattened by its rotation (quadrupole moment <i>J</i><sub>2</sub>). Instead of a single focal point, the receiver plane holds a four-cusped caustic. Inside it the telescope sees four images of the planet on the Einstein ring; outside it, two.</p>
       <div class="stage two">
         <figure class="canvas square">
           <canvas id="cv-plane" aria-label="Receiver plane with astroid caustic; drag to move the spacecraft"></canvas>
-          <figcaption>Receiver plane</figcaption>
+          <figcaption data-i18n="caustic.cap1">Receiver plane</figcaption>
         </figure>
         <figure class="canvas square">
           <canvas id="cv-ring" aria-label="Telescope view of the Einstein ring with the planet's images"></canvas>
-          <figcaption>Telescope view, Sun blocked</figcaption>
+          <figcaption data-i18n="caustic.cap2">Telescope view, Sun blocked</figcaption>
         </figure>
         <div class="controls">
           <div class="ctl">
-            <label for="c-j2">Oblateness J₂ <output id="o-j2">2.20 × 10⁻⁷</output></label>
+            <label for="c-j2"><span data-i18n="caustic.j2">Oblateness J₂</span> <output id="o-j2">2.20 × 10⁻⁷</output></label>
             <input id="c-j2" type="range" min="0.5" max="3" step="0.01" value="2.2">
           </div>
           <div class="ctl">
-            <label for="c-z">Spacecraft distance <output id="o-cz">650 AU</output></label>
+            <label for="c-z"><span data-i18n="caustic.z">Spacecraft distance</span> <output id="o-cz">650 AU</output></label>
             <input id="c-z" type="range" min="550" max="1200" step="5" value="650">
           </div>
           <div class="status" id="c-status" role="status"></div>
           <dl class="readout">
-            <dt>Images on the ring</dt><dd id="r-nimg"></dd>
-            <dt>Astroid test value</dt><dd id="r-astroid"></dd>
-            <dt>Astroid semi-width</dt><dd id="r-a"></dd>
+            <dt data-i18n="caustic.dt.n">Images on the ring</dt><dd id="r-nimg"></dd>
+            <dt data-i18n="caustic.dt.val">Astroid test value</dt><dd id="r-astroid"></dd>
+            <dt data-i18n="caustic.dt.a">Astroid semi-width</dt><dd id="r-a"></dd>
           </dl>
-          <p class="hint">Drag or tap in the receiver plane. A test value below 1 means inside the astroid.</p>
+          <p class="hint" data-i18n="caustic.hint">Drag or tap in the receiver plane. A test value below 1 means inside the astroid.</p>
         </div>
       </div>
     </section>
 
     <!-- Scene 3: PSF -->
     <section class="scene" id="psf" aria-labelledby="h-psf">
-      <h2 id="h-psf">Wave optics: the focus is centimetres wide</h2>
-      <p class="lede">Treated as a wave, the focal line has a Bessel profile, <i>J</i>₀²(<i>k</i>θ<sub>E</sub>ρ). The bright core is only a few centimetres across, so even a 1 m telescope collects many rings at once. The core widens with wavelength and with distance.</p>
+      <h2 id="h-psf" data-i18n="psf.h">Wave optics: the focus is centimetres wide</h2>
+      <p class="lede" data-i18n="psf.lede">Treated as a wave, the focal line has a Bessel profile, <i>J</i>₀²(<i>k</i>θ<sub>E</sub>ρ). The bright core is only a few centimetres across, so even a 1 m telescope collects many rings at once. The core widens with wavelength and with distance.</p>
       <div class="stage two">
         <figure class="canvas square">
           <canvas id="cv-psf" aria-label="Radial profile of the point-spread function"></canvas>
-          <figcaption>Intensity vs. offset from the axis</figcaption>
+          <figcaption data-i18n="psf.cap1">Intensity vs. offset from the axis</figcaption>
         </figure>
         <figure class="canvas square">
           <canvas id="cv-det" aria-label="Transverse plane image of the point-spread function"></canvas>
-          <figcaption>Transverse plane, 60 cm across</figcaption>
+          <figcaption data-i18n="psf.cap2">Transverse plane, 60 cm across</figcaption>
         </figure>
         <div class="controls">
           <div class="ctl">
-            <label for="p-lam">Wavelength <output id="o-lam">1.00 µm</output></label>
+            <label for="p-lam"><span data-i18n="psf.lam">Wavelength</span> <output id="o-lam">1.00 µm</output></label>
             <input id="p-lam" type="range" min="0.3" max="2.5" step="0.01" value="1">
           </div>
           <div class="ctl">
-            <label for="p-z">Spacecraft distance <output id="o-pz">650 AU</output></label>
+            <label for="p-z"><span data-i18n="psf.z">Spacecraft distance</span> <output id="o-pz">650 AU</output></label>
             <input id="p-z" type="range" min="550" max="2000" step="5" value="650">
           </div>
           <dl class="readout">
-            <dt>Core radius (first dark ring)</dt><dd class="sol" id="r-rho0"></dd>
-            <dt>Peak gain</dt><dd id="r-mu2"></dd>
-            <dt>1 m aperture spans</dt><dd id="r-span"></dd>
+            <dt data-i18n="psf.dt.core">Core radius (first dark ring)</dt><dd class="sol" id="r-rho0"></dd>
+            <dt data-i18n="psf.dt.mu">Peak gain</dt><dd id="r-mu2"></dd>
+            <dt data-i18n="psf.dt.span">1 m aperture spans</dt><dd id="r-span"></dd>
           </dl>
         </div>
       </div>
     </section>
 
-    <!-- Ranked targets -->
+    <!-- Mission planner -->
     <section class="scene" id="targets" aria-labelledby="h-targets">
-      <h2 id="h-targets">Which planets should a solar-lens telescope image first?</h2>
-      <p class="lede">Each known nearby planet gets a feasibility score out of 100, computed for a spacecraft at 650 AU. The score weighs how much light reaches the detector (30%), how long the image takes to scan (25%), how close the target is to the ecliptic, where it is cheaper to fly (25%), and how little the planet's rotation blurs the scan (20%).</p>
+      <h2 id="h-targets" data-i18n="targets.h">Which planets should a solar-lens telescope image first?</h2>
+      <p class="lede" data-i18n="targets.lede">Each known nearby planet gets a feasibility score out of 100, computed for a spacecraft at 650 AU. The score weighs how much light reaches the detector (30%), how long the image takes to scan (25%), how close the target is to the ecliptic, where it is cheaper to fly (25%), and how little the planet's rotation blurs the scan (20%). Pick a planet to see its full mission.</p>
       <div class="table-wrap">
         <table class="targets">
           <thead>
             <tr>
               <th scope="col" class="num">#</th>
-              <th scope="col">Planet</th>
-              <th scope="col" class="num">Distance</th>
-              <th scope="col" class="num">Planet image</th>
-              <th scope="col">Telescope points to</th>
-              <th scope="col">Score</th>
+              <th scope="col" data-i18n="th.planet">Planet</th>
+              <th scope="col" class="num" data-i18n="th.dist">Distance</th>
+              <th scope="col" class="num" data-i18n="th.img">Planet image</th>
+              <th scope="col" data-i18n="th.points">Telescope points to</th>
+              <th scope="col" data-i18n="th.score">Score</th>
             </tr>
           </thead>
           <tbody id="targets-body">
-            <tr><td colspan="6" class="empty">Loading the ranking…</td></tr>
+            <tr><td colspan="6" class="empty" data-i18n="targets.loading">Loading the ranking…</td></tr>
           </tbody>
         </table>
       </div>
-      <p class="hint">"Planet image" is the diameter of the planet's image at the focal line, which is the area the spacecraft has to scan. The telescope points away from the planet, towards the opposite side of the sky. Scores come from <code>sgl_sim.get_ranked_catalog</code>.</p>
+      <p class="hint" data-i18n="targets.hint">"Planet image" is the diameter of the planet's image at the focal line, which is the area the spacecraft has to scan. The telescope points away from the planet, towards the opposite side of the sky. Scores come from <code>sgl_sim.get_ranked_catalog</code>.</p>
+
+      <article class="mission" id="mission" aria-live="polite" hidden>
+        <header class="mission-head">
+          <div>
+            <h3 id="m-name"></h3>
+            <p id="m-desc"></p>
+          </div>
+          <div class="mission-score">
+            <span class="mission-score-label" data-i18n="m.score">Feasibility score</span>
+            <span class="mission-score-num" id="m-score"></span>
+            <span class="mission-tier" id="m-tier"></span>
+          </div>
+        </header>
+
+        <div class="mission-grid">
+          <section class="panel">
+            <h4 data-i18n="m.where">Where to send the spacecraft</h4>
+            <p class="panel-lede" data-i18n="m.where.lede">The spacecraft must sit on the far side of the Sun from the planet.</p>
+            <figure class="canvas sky"><canvas id="cv-sky" aria-label="All-sky map of where the solar lens is easiest to use"></canvas></figure>
+            <p class="hint" data-i18n="m.sky">How easy it is to reach the focal line in each direction of the sky (brighter is easier). Dots are the 12 candidates; the ring marks the selected one.</p>
+            <dl class="readout">
+              <dt data-i18n="m.point">Telescope pointing</dt><dd id="m-point"></dd>
+              <dt data-i18n="m.const">Constellation</dt><dd id="m-const"></dd>
+              <dt data-i18n="m.xyz">Heliocentric x, y, z</dt><dd id="m-xyz"></dd>
+              <dt data-i18n="m.incl">Out of the ecliptic</dt><dd class="sol" id="m-incl"></dd>
+            </dl>
+          </section>
+
+          <section class="panel">
+            <h4 data-i18n="m.trip">The trip and operations</h4>
+            <p class="panel-lede" id="m-trip-lede"></p>
+            <dl class="readout">
+              <dt data-i18n="m.cruise">Cruise time</dt><dd id="m-cruise"></dd>
+              <dt data-i18n="m.delay">Signal delay to Earth</dt><dd id="m-delay"></dd>
+              <dt data-i18n="m.imgdiam">Image diameter to scan</dt><dd class="sol" id="m-img"></dd>
+              <dt data-i18n="m.drift">Proper-motion drift</dt><dd id="m-drift"></dd>
+              <dt data-i18n="m.driftyr">Drift per year</dt><dd id="m-driftyr"></dd>
+              <dt data-i18n="m.dv">Scan Δv, one spacecraft</dt><dd id="m-dv1"></dd>
+              <dt id="m-dvn-label"></dt><dd id="m-dvn"></dd>
+            </dl>
+            <h4 class="sub" data-i18n="m.breakdown">Why it scores this way</h4>
+            <div class="bars" id="m-bars"></div>
+          </section>
+
+          <section class="panel">
+            <h4 data-i18n="m.imaging">One spacecraft or a swarm?</h4>
+            <p class="panel-lede" data-i18n="m.imaging.lede">The planet turns during the scan, which smears the image. Several spacecraft scan in parallel and finish sooner.</p>
+            <div class="compare">
+              <figure><div class="canvas square"><canvas id="cv-b1" aria-label="Reconstruction with one spacecraft"></canvas></div><figcaption id="m-b1"></figcaption></figure>
+              <figure><div class="canvas square"><canvas id="cv-bn" aria-label="Reconstruction with a swarm"></canvas></div><figcaption id="m-bn"></figcaption></figure>
+            </div>
+            <p class="status" id="m-verdict"></p>
+            <h4 class="sub" data-i18n="m.shared">Shared trajectory</h4>
+            <p class="panel-text" id="m-shared"></p>
+          </section>
+        </div>
+      </article>
     </section>
 
     <!-- Videos -->
     <section class="scene" id="videos" aria-labelledby="h-videos">
-      <h2 id="h-videos">Demo videos</h2>
-      <p class="lede">The same three scenes rendered with <a href="https://github.com/3b1b/manim">ManimGL</a>, the animation engine 3Blue1Brown uses. In the repository they are also interactive desktop apps.</p>
+      <h2 id="h-videos" data-i18n="videos.h">Demo videos</h2>
+      <p class="lede" data-i18n="videos.lede">The same three scenes rendered with <a href="https://github.com/3b1b/manim">ManimGL</a>, the animation engine 3Blue1Brown uses. In the repository they are also interactive desktop apps.</p>
       <div class="videos">
         <figure>
           <video controls muted playsinline preload="metadata" poster="videos/SolarLensFocalLine.jpg" src="videos/SolarLensFocalLine.mp4"></video>
-          <figcaption>Rays, z<sub>min</sub> and the focal line</figcaption>
+          <figcaption data-i18n="videos.c1">Rays, z<sub>min</sub> and the focal line</figcaption>
         </figure>
         <figure>
           <video controls muted playsinline preload="metadata" poster="videos/EinsteinCrossExplorer.jpg" src="videos/EinsteinCrossExplorer.mp4"></video>
-          <figcaption>Astroid caustic and Einstein cross</figcaption>
+          <figcaption data-i18n="videos.c2">Astroid caustic and Einstein cross</figcaption>
         </figure>
         <figure>
           <video controls muted playsinline preload="metadata" poster="videos/WavePSFExplorer.jpg" src="videos/WavePSFExplorer.mp4"></video>
-          <figcaption>Wave-optics point-spread function</figcaption>
+          <figcaption data-i18n="videos.c3">Wave-optics point-spread function</figcaption>
         </figure>
       </div>
     </section>
   </main>
 
   <footer class="wrap foot">
-    <p>Formulas match the <a href="https://github.com/teom275/sgl-sim">sgl-sim</a> Python package: weak-field deflection, <i>z</i>(<i>b</i>) = <i>b</i>²/2<i>R</i><sub>s</sub>, μ<sub>max</sub> = 4π²<i>R</i><sub>s</sub>/λ, the <i>J</i>₂ quadrupole lens equation and the <i>J</i>₀² point-spread function.</p>
-    <p>MIT licence · Teo Maggio</p>
+    <p data-i18n="foot.1">Formulas match the <a href="https://github.com/teom275/sgl-sim">sgl-sim</a> Python package: weak-field deflection, <i>z</i>(<i>b</i>) = <i>b</i>²/2<i>R</i><sub>s</sub>, μ<sub>max</sub> = 4π²<i>R</i><sub>s</sub>/λ, the <i>J</i>₂ quadrupole lens equation and the <i>J</i>₀² point-spread function. The mission analysis is precomputed with <code>scripts/export_site_targets.py</code>.</p>
+    <p data-i18n="foot.2">MIT licence · Teo Maggio</p>
   </footer>
 
   <script src="sim/config.js"></script>

@@ -16,6 +16,11 @@
   };
   const FONT = '12px "IBM Plex Sans", system-ui, sans-serif';
   const $ = (id) => document.getElementById(id);
+  const L10N = window.I18N || { t: (k, v, f) => f, num: (x, d) => Number(x).toFixed(d), lang: "en", onChange() {} };
+  const T = (key, vars, fallback) => L10N.t(key, vars, fallback);
+  const N = (x, d = 1) => L10N.num(x, d);
+  const AU = () => T("unit.au", null, "AU");
+  const binds = [];
 
   // Optional link to the hosted dashboard.
   const cfg = window.SGL_SITE || {};
@@ -58,14 +63,16 @@
     const out = $(outId);
     const update = () => { out.textContent = fmt(+el.value); onChange(+el.value); };
     el.addEventListener("input", update);
-    return { el, update, set(v) { el.value = v; update(); } };
+    const b = { el, update, set(v) { el.value = v; update(); } };
+    binds.push(b);
+    return b;
   }
 
   const fmtSci = (x, d = 2) => {
     const e = Math.floor(Math.log10(Math.abs(x)));
     const m = x / Math.pow(10, e);
     const sup = String(e).replace(/-/g, "⁻").replace(/\d/g, (c) => "⁰¹²³⁴⁵⁶⁷⁸⁹"[c]);
-    return `${m.toFixed(d)} × 10${sup}`;
+    return `${N(m, d)} × 10${sup}`;
   };
 
   function glowDot(ctx, x, y, r, color, alpha = 1) {
@@ -114,7 +121,7 @@
     for (let z = 500; z <= Z_MAX; z += 500) {
       ctx.beginPath(); ctx.moveTo(X(z), yAxis - 4); ctx.lineTo(X(z), yAxis + 4); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(X(z), h - 6); ctx.lineTo(X(z), h - 12); ctx.stroke();
-      ctx.fillText(`${z} AU`, Math.min(X(z), w - 28), h - 18);
+      ctx.fillText(`${z} ${AU()}`, Math.min(X(z), w - 28), h - 18);
     }
 
     const zmin = S.zMinAU(focal.m, focal.r);
@@ -177,7 +184,7 @@
       ctx.setLineDash([]);
       ctx.fillStyle = C.sol;
       ctx.textAlign = X(zmin) > w - 120 ? "right" : "left";
-      ctx.fillText(`z_min ${zmin.toFixed(0)} AU`, X(zmin) + (ctx.textAlign === "left" ? 6 : -6), yAxis - h * 0.36 + 12);
+      ctx.fillText(`z_min ${zmin.toFixed(0)} ${AU()}`, X(zmin) + (ctx.textAlign === "left" ? 6 : -6), yAxis - h * 0.36 + 12);
     }
 
     // Spacecraft and the ring rays that reach it.
@@ -205,21 +212,21 @@
     const st = $("f-status");
     if (ok) {
       st.dataset.tone = "sol";
-      st.textContent = "The spacecraft is on the focal line.";
+      st.textContent = T("focal.ok", null, "The spacecraft is on the focal line.");
     } else {
       st.dataset.tone = "flare";
-      st.textContent = `Too close: rays that would focus here hit the lens. Move beyond ${zmin.toFixed(0)} AU.`;
+      st.textContent = T("focal.close", { z: zmin.toFixed(0) }, `Too close: rays that would focus here hit the lens. Move beyond ${zmin.toFixed(0)} AU.`);
     }
-    $("r-zmin").textContent = `${zmin.toFixed(1)} AU`;
-    $("r-b").textContent = ok ? `${ring.bRing_rsun.toFixed(2)} R☉` : "blocked";
-    $("r-theta").textContent = ok ? `${ring.thetaE_arcsec.toFixed(2)}″` : "–";
+    $("r-zmin").textContent = `${N(zmin, 1)} ${AU()}`;
+    $("r-b").textContent = ok ? `${N(ring.bRing_rsun, 2)} R☉` : T("focal.blocked", null, "blocked");
+    $("r-theta").textContent = ok ? `${N(ring.thetaE_arcsec, 2)}″` : "–";
     $("r-mu").textContent = fmtSci(S.peakGain(1e-6, focal.m));
     focalScene.render();
   }
 
-  const fMass = bindRange("f-mass", "o-mass", (v) => `${v.toFixed(2)} M☉`, (v) => { focal.m = v; updateFocal(); });
-  const fRad = bindRange("f-rad", "o-rad", (v) => `${v.toFixed(2)} R☉`, (v) => { focal.r = v; updateFocal(); });
-  const fZ = bindRange("f-z", "o-z", (v) => `${v.toFixed(0)} AU`, (v) => { focal.z = v; updateFocal(); });
+  const fMass = bindRange("f-mass", "o-mass", (v) => `${N(v, 2)} M☉`, (v) => { focal.m = v; updateFocal(); });
+  const fRad = bindRange("f-rad", "o-rad", (v) => `${N(v, 2)} R☉`, (v) => { focal.r = v; updateFocal(); });
+  const fZ = bindRange("f-z", "o-z", (v) => `${v.toFixed(0)} ${AU()}`, (v) => { focal.z = v; updateFocal(); });
   $("f-reset").addEventListener("click", () => { fMass.set(1); fRad.set(1); fZ.set(650); });
 
   // Drag the spacecraft along the axis.
@@ -364,23 +371,23 @@
     const st = causticState();
     const tone = { inside: "sol", outside: "ice", edge: "flare" }[st.regime];
     const text = {
-      inside: "Inside the astroid: four images form an Einstein cross.",
-      outside: "Outside the astroid: two images remain.",
-      edge: "On the caustic: two images merge and vanish.",
+      inside: T("caustic.inside", null, "Inside the astroid: four images form an Einstein cross."),
+      outside: T("caustic.outside", null, "Outside the astroid: two images remain."),
+      edge: T("caustic.edge", null, "On the caustic: two images merge and vanish."),
     }[st.regime];
     const box = $("c-status");
     box.dataset.tone = tone;
     box.textContent = text;
     $("r-nimg").textContent = st.roots.length;
-    $("r-astroid").textContent = st.astroidValue.toFixed(2);
+    $("r-astroid").textContent = N(st.astroidValue, 2);
     const a = S.astroidSemiWidth(cau.z, cau.j2 * 1e-7);
-    $("r-a").textContent = a >= 1e4 ? `${Math.round(a / 1e3).toLocaleString("en")} km` : `${a.toFixed(0)} m`;
+    $("r-a").textContent = a >= 1e4 ? `${N(a / 1e3, 0)} km` : `${N(a, 0)} m`;
     planeScene.render();
     ringScene.render();
   }
 
-  bindRange("c-j2", "o-j2", (v) => `${v.toFixed(2)} × 10⁻⁷`, (v) => { cau.j2 = v; updateCaustic(); });
-  bindRange("c-z", "o-cz", (v) => `${v.toFixed(0)} AU`, (v) => { cau.z = v; updateCaustic(); });
+  bindRange("c-j2", "o-j2", (v) => `${N(v, 2)} × 10⁻⁷`, (v) => { cau.j2 = v; updateCaustic(); });
+  bindRange("c-z", "o-cz", (v) => `${v.toFixed(0)} ${AU()}`, (v) => { cau.z = v; updateCaustic(); });
 
   (function () {
     const cv = $("cv-plane");
@@ -437,7 +444,7 @@
     ctx.textAlign = "right";
     for (const yv of [0, 0.5, 1]) {
       ctx.beginPath(); ctx.moveTo(L, Y(yv)); ctx.lineTo(w - R, Y(yv)); ctx.stroke();
-      ctx.fillText(yv.toFixed(1), L - 8, Y(yv) + 4);
+      ctx.fillText(N(yv, 1), L - 8, Y(yv) + 4);
     }
 
     const lamM = psfS.lam * 1e-6;
@@ -460,7 +467,7 @@
       ctx.setLineDash([]);
       ctx.fillStyle = C.ice;
       ctx.textAlign = "left";
-      ctx.fillText(`${rho0.toFixed(1)} cm`, X(rho0) + 6, Y(0.8));
+      ctx.fillText(`${N(rho0, 1)} cm`, X(rho0) + 6, Y(0.8));
     }
   });
 
@@ -504,39 +511,211 @@
   function updatePsf() {
     const lamM = psfS.lam * 1e-6;
     const rho0 = S.psfFirstZero(psfS.z, lamM, 1);
-    $("r-rho0").textContent = `${(rho0 * 100).toFixed(2)} cm`;
+    $("r-rho0").textContent = `${N(rho0 * 100, 2)} cm`;
     $("r-mu2").textContent = fmtSci(S.peakGain(lamM, 1));
-    $("r-span").textContent = `${(0.5 / rho0).toFixed(0)} core radii`;
+    $("r-span").textContent = T("psf.radii", { n: (0.5 / rho0).toFixed(0) }, `${(0.5 / rho0).toFixed(0)} core radii`);
     psfScene.render();
     detScene.render();
   }
 
-  bindRange("p-lam", "o-lam", (v) => `${v.toFixed(2)} µm`, (v) => { psfS.lam = v; updatePsf(); });
-  bindRange("p-z", "o-pz", (v) => `${v.toFixed(0)} AU`, (v) => { psfS.z = v; updatePsf(); });
+  bindRange("p-lam", "o-lam", (v) => `${N(v, 2)} µm`, (v) => { psfS.lam = v; updatePsf(); });
+  bindRange("p-z", "o-pz", (v) => `${v.toFixed(0)} ${AU()}`, (v) => { psfS.z = v; updatePsf(); });
+
 
   // ===================================================================
-  // Ranked targets (docs/sim/targets.json, exported from sgl_sim)
+  // Mission planner (docs/sim/targets.json, precomputed with sgl_sim by
+  // scripts/export_site_targets.py)
   // ===================================================================
   const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const tierLabel = (tier) => {
+    const en = tier.replace(/^Tier \d: /, "");
+    return T(`tier.${en}`, null, en);
+  };
+  const descOf = (t) => T(`desc.${t.name}`, null, t.description);
+  const albedo = (v) => {
+    // dark → starlight blue → warm white, as in the dashboard
+    const stops = [[0, [23, 27, 36]], [0.35, [52, 84, 130]], [0.7, [169, 210, 255]], [1, [255, 240, 214]]];
+    v = Math.max(0, Math.min(1, v));
+    for (let i = 1; i < stops.length; i++) {
+      if (v <= stops[i][0]) {
+        const [a0, c0] = stops[i - 1];
+        const [a1, c1] = stops[i];
+        const f = (v - a0) / (a1 - a0);
+        return c0.map((c, k) => Math.round(c + (c1[k] - c) * f));
+      }
+    }
+    return stops[stops.length - 1][1];
+  };
+  const heat = (v) => {
+    v = Math.max(0, Math.min(1, v));
+    const a = [23, 27, 36], m = [122, 82, 28], b = [255, 194, 75];
+    return v < 0.5 ? a.map((c, k) => Math.round(c + (m[k] - c) * v * 2)) : m.map((c, k) => Math.round(c + (b[k] - c) * (v - 0.5) * 2));
+  };
+
+  /** Paint a 2D array into a w×h box via an offscreen bitmap. */
+  function paintMatrix(ctx, w, h, M, cmap, { flipY = false, smooth = false } = {}) {
+    const ny = M.length, nx = M[0].length;
+    const off = document.createElement("canvas");
+    off.width = nx; off.height = ny;
+    const o = off.getContext("2d");
+    const img = o.createImageData(nx, ny);
+    let lo = Infinity, hi = -Infinity;
+    for (const row of M) for (const v of row) { if (v < lo) lo = v; if (v > hi) hi = v; }
+    for (let j = 0; j < ny; j++) {
+      const row = M[flipY ? ny - 1 - j : j];
+      for (let i = 0; i < nx; i++) {
+        const [r, g, b] = cmap((row[i] - lo) / (hi - lo || 1));
+        const k = 4 * (j * nx + i);
+        img.data[k] = r; img.data[k + 1] = g; img.data[k + 2] = b; img.data[k + 3] = 255;
+      }
+    }
+    o.putImageData(img, 0, 0);
+    ctx.imageSmoothingEnabled = smooth;
+    ctx.drawImage(off, 0, 0, w, h);
+  }
+
+  let planner = null;   // { data, index }
+
+  const skyScene = canvasScene($("cv-sky"), (ctx, w, h) => {
+    if (!planner) return;
+    const { sky, targets } = planner.data;
+    paintMatrix(ctx, w, h, sky.efficiency, heat, { flipY: true, smooth: true });
+    const X = (ra) => (ra / 360) * w;
+    const Y = (dec) => h / 2 - (dec / 90) * (h / 2);
+    ctx.strokeStyle = "rgba(233,236,242,0.18)";
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, Y(0)); ctx.lineTo(w, Y(0)); ctx.stroke();
+    targets.forEach((t, i) => {
+      const x = X(t.telescope_ra_deg), y = Y(t.telescope_dec_deg);
+      ctx.fillStyle = C.ink;
+      ctx.beginPath(); ctx.arc(x, y, 3, 0, 2 * Math.PI); ctx.fill();
+      if (i === planner.index) {
+        ctx.strokeStyle = C.ink; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(x, y, 9, 0, 2 * Math.PI); ctx.stroke();
+      }
+    });
+  });
+
+  const blurScene = (id, key) => canvasScene($(id), (ctx, w, h) => {
+    if (!planner) return;
+    const t = planner.data.targets[planner.index];
+    paintMatrix(ctx, w, h, t.mission.blur[key].image, albedo);
+  });
+  const blur1 = blurScene("cv-b1", "single");
+  const blurN = blurScene("cv-bn", "swarm");
+
+  function renderTable() {
+    const { targets } = planner.data;
+    $("targets-body").innerHTML = targets.map((t, i) => {
+      const low = t.sgl_score < 60;
+      const sel = i === planner.index;
+      return `<tr class="pick ${low ? "low" : ""}" data-i="${i}" aria-selected="${sel}">
+        <td class="num">${i + 1}</td>
+        <td class="planet"><button type="button" data-i="${i}" aria-label="${esc(T("targets.select", { name: t.name }, `See the mission to ${t.name}`))}">${esc(t.name)}</button><span>${esc(descOf(t))}</span></td>
+        <td class="num">${N(t.dist_pc, 2)} pc<br><small>${esc(T("m.ly", { n: N(t.dist_pc * 3.2616, 1) }, `${N(t.dist_pc * 3.2616, 1)} ly`))}</small></td>
+        <td class="num">${N(t.image_diameter_km, 1)} km</td>
+        <td>${esc(t.telescope_constellation)}</td>
+        <td class="score"><span class="score-bar"><i style="width:${t.sgl_score}%"></i></span>${N(t.sgl_score, 1)}<small>${esc(tierLabel(t.tier))}</small></td>
+      </tr>`;
+    }).join("");
+  }
+
+  function renderMission() {
+    const d = planner.data;
+    const t = d.targets[planner.index];
+    const m = t.mission;
+    const dep = m.deployment;
+    const one = m.blur.single;
+    const many = m.blur.swarm;
+    $("mission").hidden = false;
+    $("m-name").textContent = t.name;
+    $("m-desc").textContent = descOf(t);
+    $("m-score").innerHTML = `${N(t.sgl_score, 1)} <small>/ 100</small>`;
+    $("m-tier").textContent = tierLabel(t.tier);
+
+    $("m-point").textContent = `RA ${N(dep.telescope_ra_deg, 1)}°, Dec ${dep.telescope_dec_deg >= 0 ? "+" : ""}${N(dep.telescope_dec_deg, 1)}°`;
+    $("m-const").textContent = dep.telescope_constellation;
+    $("m-xyz").textContent = `${N(dep.x_au, 0)}, ${N(dep.y_au, 0)}, ${N(dep.z_au, 0)} ${AU()}`;
+    $("m-incl").textContent = `${N(dep.ecliptic_inclination_deg, 1)}°`;
+
+    $("m-trip-lede").textContent = T("m.trip.lede", { year: d.arrival_year, v: N(d.cruise_velocity_au_yr, 0) },
+      `Arrival in ${d.arrival_year}, cruising at ${d.cruise_velocity_au_yr} AU per year.`);
+    $("m-cruise").textContent = T("m.years", { n: N(dep.cruise_time_years, 1) }, `${N(dep.cruise_time_years, 1)} years`);
+    $("m-delay").textContent = T("m.days", { n: N(dep.light_delay_days, 2) }, `${N(dep.light_delay_days, 2)} days`);
+    $("m-img").textContent = `${N(t.image_diameter_km, 1)} km`;
+    $("m-drift").textContent = `${N(dep.proper_motion_drift_m_s, 1)} m/s`;
+    $("m-driftyr").textContent = `${N(dep.annual_lateral_drift_km, 0)} km`;
+    $("m-dv1").textContent = `${N(one.total_delta_v_m_s, 0)} m/s`;
+    $("m-dvn-label").textContent = T("m.dvswarm", { n: d.swarm_size }, `Scan Δv per craft, swarm of ${d.swarm_size}`);
+    $("m-dvn").textContent = `${N(many.total_delta_v_m_s, 0)} m/s`;
+
+    const factors = [
+      ["m.f.snr", "Signal (SNR)", t.snr_score],
+      ["m.f.log", "Scan logistics", t.scan_logistics_score],
+      ["m.f.ecl", "Ecliptic access", t.ecliptic_access_score],
+      ["m.f.blur", "Blur immunity", t.blur_immunity_score],
+    ];
+    $("m-bars").innerHTML = factors.map(([k, en, v]) =>
+      `<span class="label">${esc(T(k, null, en))}</span><span class="bar"><i style="width:${Math.round(v * 100)}%"></i></span><span>${N(v, 2)}</span>`
+    ).join("");
+
+    const cap = (r, title) => `<b>${esc(title)}</b>${esc(T("m.smear",
+      { x: N(r.eta_blur, 2), h: N(r.scan_time_hours, 2), e: N(r.rmse, 3) },
+      `smear ${N(r.eta_blur, 2)}× · scan ${N(r.scan_time_hours, 2)} h · error ${N(r.rmse, 3)}`))}`;
+    $("m-b1").innerHTML = cap(one, T("m.one", null, "One spacecraft"));
+    $("m-bn").innerHTML = cap(many, T("m.swarm", { n: d.swarm_size }, `Swarm of ${d.swarm_size}`));
+    const verdict = $("m-verdict");
+    if (one.is_blurred) {
+      verdict.dataset.tone = "flare";
+      verdict.textContent = T("m.verdict.swarm", null, "A swarm is needed: with one spacecraft the planet's rotation smears the image.");
+    } else {
+      verdict.dataset.tone = "sol";
+      verdict.textContent = T("m.verdict.single", null, "One spacecraft is enough: the planet turns so slowly (or is tidally locked) that the image stays sharp.");
+    }
+
+    const list = m.coaligned_with.map((c) => c.name);
+    const joined = L10N.lang === "es"
+      ? list.join(", ").replace(/, ([^,]*)$/, " y $1")
+      : list.join(", ").replace(/, ([^,]*)$/, " and $1");
+    $("m-shared").textContent = list.length
+      ? T("m.shared.yes", { list: joined }, `The same fleet can also observe ${joined} with a minor trajectory correction (within 3°).`)
+      : T("m.shared.no", null, "No other candidate lies within 3°, so this mission cannot be shared.");
+
+    skyScene.render(); blur1.render(); blurN.render();
+  }
+
+  function select(i, focus) {
+    planner.index = i;
+    renderTable();
+    renderMission();
+    if (focus) {
+      const btn = $("targets-body").querySelector(`button[data-i="${i}"]`);
+      if (btn) btn.focus();
+    }
+  }
+
+  $("targets-body").addEventListener("click", (e) => {
+    const tr = e.target.closest("tr[data-i]");
+    if (!tr || !planner) return;
+    select(+tr.dataset.i, e.target.tagName === "BUTTON");
+    if (e.target.tagName === "BUTTON") {
+      $("mission").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+    }
+  });
+
   fetch("sim/targets.json")
     .then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
-    .then(({ targets }) => {
-      $("targets-body").innerHTML = targets.map((t, i) => {
-        const tier = t.tier.replace(/^Tier \d: /, "");
-        const low = t.sgl_score < 60;
-        return `<tr class="${low ? "low" : ""}">
-          <td class="num">${i + 1}</td>
-          <td class="planet"><b>${esc(t.name)}</b><span>${esc(t.description)}</span></td>
-          <td class="num">${t.dist_pc.toFixed(2)} pc<br><small>${(t.dist_pc * 3.2616).toFixed(1)} ly</small></td>
-          <td class="num">${t.image_diameter_km.toFixed(1)} km</td>
-          <td>${esc(t.telescope_constellation)}</td>
-          <td class="score"><span class="score-bar"><i style="width:${t.sgl_score}%"></i></span>${t.sgl_score.toFixed(1)}<small>${esc(tier)}</small></td>
-        </tr>`;
-      }).join("");
-    })
+    .then((data) => { planner = { data, index: 0 }; select(0, false); })
     .catch(() => {
-      $("targets-body").innerHTML = '<tr><td colspan="6" class="empty">The ranking could not be loaded. Reload the page to try again.</td></tr>';
+      $("targets-body").innerHTML = `<tr><td colspan="6" class="empty">${esc(T("targets.error", null, "The ranking could not be loaded. Reload the page to try again."))}</td></tr>`;
     });
+
+  // Re-render every dynamic string when the language changes.
+  L10N.onChange(() => {
+    binds.forEach((b) => b.update());
+    if (planner) { renderTable(); renderMission(); }
+    focalScene.render(); psfScene.render();
+  });
 
   updateFocal();
   updateCaustic();
