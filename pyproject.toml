@@ -46,6 +46,13 @@ test = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
 ]
+# Interactive 3Blue1Brown-style scenes (src/sgl_sim/manim_scenes). ManimGL 1.7.x
+# still imports pkg_resources and pydub (audioop), hence the two shims.
+manim = [
+    "manimgl>=1.7.2",
+    "setuptools<81",
+    "audioop-lts; python_version >= '3.13'",
+]
 
 [project.scripts]
 sgl-sim-server = "sgl_sim.web.app:run_server"
@@ -63,3 +70,8 @@ where = ["src"]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 addopts = "-v --strict-markers"
+
+[tool.coverage.run]
+# The ManimGL scene file needs an OpenGL context; its physics lives in
+# manim_scenes/model.py, which is fully covered by tests/test_manim_model.py.
+omit = ["*/sgl_sim/manim_scenes/sgl_interactive.py"]
