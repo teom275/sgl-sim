@@ -160,16 +160,12 @@ def test_compute_motion_blur_single_vs_swarm_scaling():
 
 
 def test_compute_motion_blur_tidally_locked():
-    """Verify tidally locked planets have minimal blur (eta_blur = 0.05)."""
-    res = compute_motion_blur(
-        image_diameter_km=4.0,
-        grid_pixels=32,
-        planet_rot_period_hours=100.0,
-        tidally_locked=True,
-        num_satellites=1,
-    )
-    assert res["eta_blur"] == 0.05
-    assert res["is_blurred"] is False
+    """Tidally locked planets still rotate once per orbit: same blur as any rotator with that period."""
+    kw = dict(image_diameter_km=4.0, grid_pixels=32, planet_rot_period_hours=100.0, num_satellites=1)
+    locked = compute_motion_blur(tidally_locked=True, **kw)
+    free = compute_motion_blur(tidally_locked=False, **kw)
+    assert locked["eta_blur"] == pytest.approx(free["eta_blur"])
+    assert locked["eta_blur"] == pytest.approx(locked["scan_time_hours"] / (100.0 / (np.pi * 32)))
 
 
 def test_generate_sky_efficiency_map():

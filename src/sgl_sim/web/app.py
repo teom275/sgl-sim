@@ -67,6 +67,8 @@ from sgl_sim.triage import (
     check_mission_coalignment,
     CATALOG_12_CANDIDATES,
 )
+from sgl_sim.imaging import simulate_sgl_observation
+from sgl_sim.deconvolution import compute_rmse, compute_ssim
 from sgl_sim.exporters import (
     build_simulation_fits_hdulist,
     export_fits,
@@ -178,16 +180,22 @@ def run_full_simulation(params: Dict[str, Any]) -> Dict[str, Any]:
     )
     snr_val = snr_dict["snr"]
 
-    # Generate synthetic exoplanet map and Bessel PSF kernel
-    gt_map = generate_exoplanet_map(grid_size=32, seed=42)
-    psf_2d = generate_2d_psf(grid_size=32, pixel_scale_m=1.0, z_rec=z_rec_m, wavelength=wavelength_m, mass=mass_kg)
-
-    deconv_res = wiener_deconvolution(
-        ground_truth=gt_map,
-        psf_kernel=psf_2d,
-        snr=snr_val,
-        seed=101,
+    # Physical SGL imaging: photon budget, 1/rho blur matrix on D/N pixels,
+    # corona noise, direct reconstruction (sgl_sim.imaging). The planet is held
+    # still here; rotation is explored in the Triage tab.
+    obs = simulate_sgl_observation(
+        "planet", n_pixels=32, z_rec=z_rec_m, aperture_m=aperture_m, distance_source=dist_m,
+        rot_period_hours=None, per_pixel_s=t_int_s, seed=101,
     )
+    gt_map = obs["truth"]
+    deconv_res = {
+        "convolved_noisy": obs["measured"],
+        "deconvolved": obs["reconstructed"],
+        "rmse_noisy": compute_rmse(gt_map, obs["measured"]),
+        "rmse_deconvolved": obs["rmse"],
+        "ssim_noisy": compute_ssim(gt_map, obs["measured"]),
+        "ssim_deconvolved": obs["ssim"],
+    }
 
     # 5. Orbital Mechanics
     v_orb = orbital_velocity(z_rec=z_rec_m, mass=mass_kg)
@@ -393,50 +401,49 @@ def api_evaluate_candidate():
 
 @app.route("/api/swarm_blur_sim", methods=["POST"])
 def api_swarm_blur_sim():
-    """Simulate rotational motion blur comparing single-spacecraft vs swarm."""
+    """
+    One telescope vs. a swarm imaging a rotating planet (sgl_sim.imaging).
+
+    Exposure per pixel comes from the photon budget (SNR 7, 1 m telescopes).
+    A tidally locked planet rotates once per orbit, so its orbital period is
+    passed as the rotation period.
+    """
     try:
         data = request.get_json(force=True, silent=True) or {}
-        image_diameter_km = float(data.get("image_diameter_km", 4.2))
-        grid_pixels = int(data.get("grid_pixels", 32))
-        planet_rot_period_hours = float(data.get("planet_rot_period_hours", 24.0))
-        tidally_locked = bool(data.get("tidally_locked", False))
-        num_satellites = int(data.get("num_satellites", 8))
-        integration_time_per_pixel_s = float(data.get("integration_time_per_pixel_s", 10.0))
-        max_lateral_accel_m_s2 = float(data.get("max_lateral_accel_m_s2", 1e-4))
-        v_drift_m_s = float(data.get("v_drift_m_s", 15.0))
-        snr = float(data.get("snr", 25.0))
-
-        # Single craft simulation (N=1)
-        single_res = compute_motion_blur(
-            image_diameter_km=image_diameter_km,
-            grid_pixels=grid_pixels,
-            planet_rot_period_hours=planet_rot_period_hours,
-            tidally_locked=tidally_locked,
-            num_satellites=1,
-            integration_time_per_pixel_s=integration_time_per_pixel_s,
-            max_lateral_accel_m_s2=max_lateral_accel_m_s2,
-            v_drift_m_s=v_drift_m_s,
-            snr=snr,
+        rot = float(data.get("planet_rot_period_hours", 24.0))
+        n_sat = max(1, int(data.get("num_satellites", 8)))
+        kw = dict(
+            n_pixels=int(data.get("grid_pixels", 32)),
+            z_rec=float(data.get("z_rec_au", 650.0)) * AU_SI,
+            aperture_m=float(data.get("aperture_m", 1.0)),
+            distance_source=float(data.get("distance_source_pc", 1.3)) * PC_SI,
+            planet_radius=float(data.get("radius_earth", 1.0)) * 6.371e6,
+            rot_period_hours=rot,
+            target_snr=float(data.get("target_snr", 7.0)),
+            # Exposure set for an Earth-like geometric albedo, as on the web simulator.
+            geometric_albedo=float(data.get("geometric_albedo", 0.367)),
         )
 
-        # Swarm simulation (N=num_satellites)
-        swarm_res = compute_motion_blur(
-            image_diameter_km=image_diameter_km,
-            grid_pixels=grid_pixels,
-            planet_rot_period_hours=planet_rot_period_hours,
-            tidally_locked=tidally_locked,
-            num_satellites=num_satellites,
-            integration_time_per_pixel_s=integration_time_per_pixel_s,
-            max_lateral_accel_m_s2=max_lateral_accel_m_s2,
-            v_drift_m_s=v_drift_m_s,
-            snr=snr,
-        )
+        def pack(res):
+            return {
+                "num_satellites": res["n_telescopes"],
+                "eta_blur": res["smear_factor"],
+                "is_blurred": res["smear_factor"] > 1.0,
+                "scan_time_hours": res["scan_hours"],
+                "per_pixel_s": res["per_pixel_s"],
+                "t_max_blur_hours": res["max_sharp_scan_hours"],
+                "telescopes_needed": res["telescopes_needed"],
+                "sharp_possible": res["sharp_possible"],
+                "min_aperture_m": res["min_aperture_m"],
+                "rmse": res["rmse"],
+                "ssim": res["ssim"],
+                "reconstructed_image": res["reconstructed"].tolist(),
+                "ground_truth": res["truth"].tolist(),
+            }
 
-        return jsonify({
-            "status": "success",
-            "single": single_res,
-            "swarm": swarm_res,
-        })
+        single = simulate_sgl_observation("planet", n_telescopes=1, **kw)
+        swarm = simulate_sgl_observation("planet", n_telescopes=n_sat, **kw)
+        return jsonify({"status": "success", "single": pack(single), "swarm": pack(swarm)})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 400
 

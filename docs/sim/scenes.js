@@ -532,6 +532,14 @@
     return T(`tier.${en}`, null, en);
   };
   const descOf = (t) => T(`desc.${t.name}`, null, t.description);
+  /** Human duration from hours: s, min, h, days or years. */
+  const duration = (h) => {
+    if (h < 2 / 60) return `${N(h * 3600, 0)} s`;
+    if (h < 1) return `${N(h * 60, 0)} min`;
+    if (h < 48) return `${N(h, 1)} h`;
+    if (h < 24 * 730) return T("m.days", { n: N(h / 24, 0) }, `${N(h / 24, 0)} days`);
+    return T("m.years", { n: N(h / 8766, 0) }, `${N(h / 8766, 0)} years`);
+  };
   /** Data-quality labels: unconfirmed planet, radius estimated from minimum mass. */
   const flagsOf = (t) => {
     const f = [];
@@ -693,11 +701,11 @@
     const d = planner.data;
     const b64 = key === "truth"
       ? d.surfaces[planner.surface]
-      : d.targets[planner.index].mission.blur[key].surfaces[planner.surface].image;
+      : d.targets[planner.index].mission.imaging.surfaces[planner.surface][key].image;
     paintMatrix(ctx, w, h, decodeImage(b64, d.grid), albedo, { range: [0, displayMax(d.surfaces[planner.surface], d.grid)] });
   });
   const blur0 = blurScene("cv-b0", "truth");
-  const blur1 = blurScene("cv-b1", "single");
+  const blur1 = blurScene("cv-b1", "one");
   const blurN = blurScene("cv-bn", "swarm");
 
   document.querySelectorAll("[data-surface]").forEach((b) => b.addEventListener("click", () => {
@@ -727,8 +735,7 @@
     const t = d.targets[planner.index];
     const m = t.mission;
     const dep = m.deployment;
-    const one = m.blur.single;
-    const many = m.blur.swarm;
+    const im = m.imaging;
     $("mission").hidden = false;
     $("m-name").textContent = t.name;
     $("m-desc").innerHTML = `${esc(descOf(t))}${flagsHtml(t) ? ` <span class="flags">${flagsHtml(t)}</span>` : ""}`;
@@ -747,9 +754,12 @@
     $("m-img").textContent = `${N(t.image_diameter_km, 1)} km`;
     $("m-drift").textContent = `${N(dep.proper_motion_drift_m_s, 1)} m/s`;
     $("m-driftyr").textContent = `${N(dep.annual_lateral_drift_km, 0)} km`;
-    $("m-dv1").textContent = `${N(one.total_delta_v_m_s, 0)} m/s`;
-    $("m-dvn-label").textContent = T("m.dvswarm", { n: d.swarm_size }, `Scan Δv per craft, swarm of ${d.swarm_size}`);
-    $("m-dvn").textContent = `${N(many.total_delta_v_m_s, 0)} m/s`;
+    $("m-tpix").textContent = duration(im.per_pixel_s / 3600);
+    $("m-scan1").textContent = duration(im.scan_hours_one);
+    $("m-tsharp").textContent = duration(im.max_sharp_scan_hours);
+    const needText = (ok, n, dMin) => ok ? N(n, 0) : T("m.none", { d: N(dMin, 1) }, `needs ≥ ${N(dMin, 1)} m telescopes`);
+    $("m-need32").textContent = needText(im.sharp_possible, im.telescopes_needed, im.min_aperture_m);
+    $("m-need64").textContent = needText(im.sharp_possible_64, im.telescopes_needed_64, im.min_aperture_m_64);
 
     const factors = [
       ["m.f.snr", "Signal (SNR)", t.snr_score],
@@ -763,28 +773,30 @@
 
     const surf = planner.surface;
     document.querySelectorAll("[data-surface]").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.surface === surf)));
-    const cap = (r, title) => {
-      const q = r.surfaces[surf];
-      return `<b>${esc(title)}</b>${esc(T("m.smear", { x: N(r.eta_blur, 2), h: N(r.scan_time_hours, 2) },
-        `smear ${N(r.eta_blur, 2)}× · scan ${N(r.scan_time_hours, 2)} h`))}<br>${esc(T("m.err", { e: N(q.rmse, 3), s: N(q.ssim, 2) },
-        `error ${N(q.rmse, 3)} · similarity ${N(q.ssim, 2)}`))}`;
-    };
+    const q = im.surfaces[surf];
+    const err = (r) => esc(T("m.err", { e: N(r.rmse, 3), s: N(r.ssim, 2) }, `error ${N(r.rmse, 3)} · similarity ${N(r.ssim, 2)}`));
+    const swarmTitle = T("m.swarm", { n: N(im.telescopes_needed, 0) }, `Swarm of ${N(im.telescopes_needed, 0)}`);
     $("m-b0").innerHTML = `<b>${esc(T("m.truth", null, "Actual surface"))}</b>${esc(T("m.truth.cap", null, "what the lens is trying to capture"))}`;
-    $("m-b1").innerHTML = cap(one, T("m.one", null, "One spacecraft"));
-    $("m-bn").innerHTML = cap(many, T("m.swarm", { n: d.swarm_size }, `Swarm of ${d.swarm_size}`));
+    $("m-b1").innerHTML = `<b>${esc(T("m.one", null, "One telescope"))}</b>${esc(T("m.smear", { x: N(im.smear_one, 1) }, `smeared ${N(im.smear_one, 1)}×`))}<br>${err(q.one)}`;
+    $("m-bn").innerHTML = `<b>${esc(swarmTitle)}</b>${esc(T("m.scan", { h: duration(q.swarm.scan_hours) }, `scan ${duration(q.swarm.scan_hours)}`))}<br>${err(q.swarm)}`;
     const notes = {
       planet: `A synthetic ocean world with continents and ice caps: nobody knows yet what ${t.name} really looks like. Choose Earth or Moon to compare with a familiar body.`,
       earth: `What a cloud-free Earth would look like on this mission: same distance, rotation and noise as ${t.name}, only the surface changes. Resolution: 32 × 32 pixels.`,
-      moon: `What the Moon's near side (schematic map of its maria) would look like on this mission: same distance, rotation and noise as ${t.name}, only the surface changes.`,
+      moon: `What the Moon would look like on this mission. Schematic map: maria on the near side, highlands on the far side. Same distance, rotation and noise as ${t.name}, only the surface changes.`,
     };
     $("m-surface-note").textContent = T(`m.surf.note.${surf}`, { name: t.name }, notes[surf]);
     const verdict = $("m-verdict");
-    if (one.is_blurred) {
+    if (!im.sharp_possible) {
       verdict.dataset.tone = "flare";
-      verdict.textContent = T("m.verdict.swarm", null, "A swarm is needed: with one spacecraft the planet's rotation smears the image.");
+      verdict.textContent = T("m.verdict.aperture", { d: N(im.min_aperture_m, 1), x: N(im.residual_smear, 1) },
+        `Not fully sharp with 1 m telescopes: even with one telescope per pixel, each exposure lasts ${N(im.residual_smear, 1)}× longer than rotation allows, so the image stays smeared that much. Telescopes of at least ${N(im.min_aperture_m, 1)} m would fix it.`);
+    } else if (im.telescopes_needed > 1) {
+      verdict.dataset.tone = "ice";
+      verdict.textContent = T("m.verdict.swarm", { n: N(im.telescopes_needed, 0), x: N(im.smear_one, 1) },
+        `A swarm of ${N(im.telescopes_needed, 0)} telescopes is needed: one telescope takes so long that the planet turns and smears the image ${N(im.smear_one, 1)}×.`);
     } else {
       verdict.dataset.tone = "sol";
-      verdict.textContent = T("m.verdict.single", null, "One spacecraft is enough: the planet turns so slowly (or is tidally locked) that the image stays sharp.");
+      verdict.textContent = T("m.verdict.single", null, "One telescope is enough: it finishes the scan before the planet turns appreciably.");
     }
 
     const list = m.coaligned_with.map((c) => c.name);

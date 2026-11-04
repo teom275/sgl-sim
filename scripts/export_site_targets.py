@@ -13,9 +13,11 @@ Writes docs/sim/targets.json from the sgl_sim API:
   - other candidates reachable from the same trajectory
     (sgl_sim.triage.check_mission_coalignment)
 * the all-sky efficiency map (sgl_sim.triage.generate_sky_efficiency_map).
-* reference surfaces (sgl_sim.reference_bodies): every blur result is also
-  computed as if the target had the Earth's or the Moon's surface, keeping
-  the target's distance, rotation and noise, to give a feel for image quality.
+* a physical image simulation (sgl_sim.imaging.simulate_sgl_observation)
+  for one telescope and for the swarm that keeps the image sharp. It uses the
+  photon budget, the SGL blur matrix, corona noise and the planet's rotation,
+  and is run for three surfaces: a synthetic planet, the Earth and the Moon,
+  all with the target's distance, size, insolation and rotation.
 
 Images are stored as base64-encoded uint8 arrays (row 0 = north) to keep the
 file small.
@@ -34,26 +36,23 @@ import numpy as np
 from sgl_sim import (
     CATALOG_12_CANDIDATES,
     check_mission_coalignment,
-    compute_motion_blur,
     compute_sgl_deployment_vector,
     generate_sky_efficiency_map,
     get_ranked_catalog,
-    generate_exoplanet_map,
-    reference_body_map,
     resolve_exoplanet,
 )
+from sgl_sim.imaging import sharp_imaging_requirements, simulate_sgl_observation
+from sgl_sim.radiometry import EARTH_GEOMETRIC_ALBEDO, integration_time_for_snr
+from sgl_sim.relativity import AU_SI, PC_SI
 from sgl_sim.targets import _find_in_curated_catalog
 
 Z_REC_AU = 650.0
 ARRIVAL_YEAR = 2048
 CRUISE_AU_YR = 20.0
-SWARM_SIZE = 8
 GRID = 32
-SURFACES = {
-    "planet": lambda: generate_exoplanet_map(grid_size=GRID, seed=42),
-    "earth": lambda: reference_body_map("earth", grid_size=GRID),
-    "moon": lambda: reference_body_map("moon", grid_size=GRID),
-}
+TARGET_SNR = 7.0
+APERTURE_M = 1.0
+SURFACES = ("planet", "earth", "moon")
 OUT = Path(__file__).resolve().parents[1] / "docs" / "sim" / "targets.json"
 
 RANK_FIELDS = (
@@ -61,16 +60,12 @@ RANK_FIELDS = (
     "ecliptic_lat_deg", "ecliptic_lon_deg", "telescope_constellation", "telescope_ra_deg", "telescope_dec_deg",
     "image_diameter_km", "v_drift_m_s", "proper_motion_mas_yr",
     "snr_score", "scan_logistics_score", "ecliptic_access_score", "blur_immunity_score",
-    "sgl_score", "tier", "description", "radius_measured", "confirmed",
+    "sgl_score", "tier", "description", "radius_measured", "confirmed", "insolation_earth",
 )
 DEPLOY_FIELDS = (
     "x_au", "y_au", "z_au", "ecliptic_inclination_deg", "light_delay_days", "light_delay_hours",
     "cruise_time_years", "image_diameter_km", "proper_motion_drift_m_s", "annual_lateral_drift_km",
     "telescope_ra_deg", "telescope_dec_deg", "telescope_constellation", "target_constellation", "hostname",
-)
-BLUR_FIELDS = (
-    "num_satellites", "eta_blur", "is_blurred", "scan_time_hours", "t_max_blur_hours",
-    "rmse", "ssim", "total_delta_v_m_s",
 )
 
 
@@ -110,28 +105,52 @@ def _target_record(cand: dict) -> dict:
     })
 
 
-def mission_profile(rank_row: dict, cand: dict, surfaces: dict) -> dict:
+def imaging_profile(cand: dict) -> dict:
+    """One telescope vs. the swarm that keeps a GRID x GRID image sharp, for each surface."""
+    kw = dict(
+        n_pixels=GRID, z_rec=Z_REC_AU * AU_SI, aperture_m=APERTURE_M,
+        distance_source=cand["dist_pc"] * PC_SI, planet_radius=cand["radius_earth"] * 6.371e6,
+        insolation_earth=cand.get("insolation_earth", 1.0), rot_period_hours=cand["rot_period_hrs"],
+        target_snr=TARGET_SNR, geometric_albedo=EARTH_GEOMETRIC_ALBEDO,
+    )
+    first = simulate_sgl_observation("planet", n_telescopes=1, **kw)
+    swarm_n = first["telescopes_needed"]
+    out = {
+        "per_pixel_s": first["per_pixel_s"],
+        "scan_hours_one": first["scan_hours"],
+        "max_sharp_scan_hours": first["max_sharp_scan_hours"],
+        "smear_one": first["smear_factor"],
+        "telescopes_needed": swarm_n,
+        "sharp_possible": first["sharp_possible"],
+        "min_aperture_m": first["min_aperture_m"],
+        "residual_smear": sharp_imaging_requirements(first["per_pixel_s"], GRID, cand["rot_period_hrs"], APERTURE_M)["residual_smear"],
+        "corona_to_blur": first["corona_rate"] / first["blur_rate"],
+        "surfaces": {},
+    }
+    # Telescopes for a sharper 64 x 64 image (time per pixel grows as N^2).
+    t64 = integration_time_for_snr(TARGET_SNR, **{k: v for k, v in kw.items()
+                                                  if k not in ("rot_period_hours", "target_snr")} | {"n_pixels": 64})
+    req64 = sharp_imaging_requirements(t64["per_pixel_s"], 64, cand["rot_period_hrs"], APERTURE_M)
+    out["telescopes_needed_64"] = req64["telescopes_needed"]
+    out["sharp_possible_64"] = req64["sharp_possible"]
+    out["min_aperture_m_64"] = req64["min_aperture_m"]
+    for surface in SURFACES:
+        one = first if surface == "planet" else simulate_sgl_observation(surface, n_telescopes=1, **kw)
+        many = simulate_sgl_observation(surface, n_telescopes=swarm_n, **kw)
+        out["surfaces"][surface] = {
+            "one": {"rmse": one["rmse"], "ssim": one["ssim"], "image": _encode_image(one["reconstructed"])},
+            "swarm": {"rmse": many["rmse"], "ssim": many["ssim"], "scan_hours": many["scan_hours"],
+                      "image": _encode_image(many["reconstructed"])},
+        }
+    return out
+
+
+def mission_profile(rank_row: dict, cand: dict) -> dict:
     deploy = compute_sgl_deployment_vector(
         target_data=_target_record(cand), z_rec_au=Z_REC_AU,
         arrival_year=ARRIVAL_YEAR, cruise_vel_au_yr=CRUISE_AU_YR,
     )
-    blur = {}
-    for key, n in (("single", 1), ("swarm", SWARM_SIZE)):
-        per_surface = {}
-        for surface, gt in surfaces.items():
-            res = compute_motion_blur(
-                image_diameter_km=rank_row["image_diameter_km"],
-                grid_pixels=GRID,
-                planet_rot_period_hours=cand["rot_period_hrs"],
-                tidally_locked=cand["tidally_locked"],
-                num_satellites=n,
-                v_drift_m_s=rank_row["v_drift_m_s"],
-                ground_truth=gt,
-            )
-            per_surface[surface] = {"rmse": res["rmse"], "ssim": res["ssim"],
-                                    "image": _encode_image(res["reconstructed_image"])}
-        blur[key] = {k: res[k] for k in BLUR_FIELDS if k not in ("rmse", "ssim")}
-        blur[key]["surfaces"] = per_surface
+    imaging = imaging_profile(cand)
     coal = check_mission_coalignment(CATALOG_12_CANDIDATES, cand["ra_deg"], cand["dec_deg"])
     companions = [
         {"name": m["target_name"], "separation_deg": m["separation_deg"]}
@@ -140,27 +159,33 @@ def mission_profile(rank_row: dict, cand: dict, surfaces: dict) -> dict:
     ]
     return {
         "deployment": {k: deploy[k] for k in DEPLOY_FIELDS},
-        "blur": blur,
+        "imaging": imaging,
         "coaligned_with": companions,
     }
 
 
+def _truth(surface: str):
+    """The face each surface shows at the start of the scan (as the simulator normalises it)."""
+    return simulate_sgl_observation(surface, n_pixels=GRID, distance_source=10 * PC_SI,
+                                    rot_period_hours=None, target_snr=TARGET_SNR)["truth"]
+
+
 def build() -> dict:
     by_name = {c["name"]: c for c in CATALOG_12_CANDIDATES}
-    surfaces = {name: make() for name, make in SURFACES.items()}
     rows = []
     for r in get_ranked_catalog(z_rec_au=Z_REC_AU):
         row = {k: r[k] for k in RANK_FIELDS}
-        row["mission"] = mission_profile(r, by_name[r["name"]], surfaces)
+        row["mission"] = mission_profile(r, by_name[r["name"]])
         rows.append(row)
     sky = generate_sky_efficiency_map(n_ra=72, n_dec=36)
     return _round({
         "z_rec_au": Z_REC_AU,
         "arrival_year": ARRIVAL_YEAR,
         "cruise_velocity_au_yr": CRUISE_AU_YR,
-        "swarm_size": SWARM_SIZE,
         "grid": GRID,
-        "surfaces": {name: _encode_image(img) for name, img in surfaces.items()},
+        "target_snr": TARGET_SNR,
+        "aperture_m": APERTURE_M,
+        "surfaces": {name: _encode_image(_truth(name)) for name in SURFACES},
         "targets": rows,
         "sky": {
             "ra_grid": sky["ra_grid"],

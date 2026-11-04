@@ -13,6 +13,8 @@ The examples below run in order as a single script: later examples reuse variabl
 - [6. Real exoplanet target resolver & 3D heliocentric telemetry](#6-real-exoplanet-target-resolver--3d-heliocentric-telemetry)
 - [7. Exoplanet triage, sky efficiency & swarm motion blur](#7-exoplanet-triage-sky-efficiency--swarm-motion-blur)
 - [8. What would the Earth look like? Reference bodies](#8-what-would-the-earth-look-like-reference-bodies)
+- [9. How long does an image take? Photon budget](#9-how-long-does-an-image-take-photon-budget)
+- [10. One telescope or a swarm? Physical image simulation](#10-one-telescope-or-a-swarm-physical-image-simulation)
 
 ## Modules at a glance
 
@@ -27,6 +29,7 @@ The examples below run in order as a single script: later examples reuse variabl
 | `sgl_sim.targets` | Exoplanet resolver and deployment geometry | `resolve_exoplanet`, `compute_sgl_deployment_vector`, `list_curated_targets`, `TOP_15_SGL_TARGETS` |
 | `sgl_sim.triage` | Feasibility scoring, sky map, swarm motion blur | `score_exoplanet_candidate`, `get_ranked_catalog`, `generate_sky_efficiency_map`, `check_mission_coalignment`, `compute_motion_blur`, `CATALOG_12_CANDIDATES` |
 | `sgl_sim.radiometry` | Photon budget of an extended source through the SGL: blur, pixel signal and solar corona; integration time for a target SNR | `sgl_photon_budget`, `integration_time_for_snr`, `solar_photon_flux` |
+| `sgl_sim.imaging` | Physical image simulation: SGL blur matrix, corona noise, reconstruction, rotation during the scan, swarm sizing | `simulate_sgl_observation`, `sharp_imaging_requirements`, `required_telescopes`, `sgl_blur_matrix` |
 | `sgl_sim.reference_bodies` | Earth and Moon albedo maps to compare image quality against a familiar world | `earth_albedo_map`, `moon_albedo_map`, `reference_body_map`, `REFERENCE_BODIES` |
 | `sgl_sim.exporters` | FITS, CSV and JSON output | `build_simulation_fits_hdulist`, `export_fits`, `export_csv`, `export_json` |
 
@@ -220,4 +223,22 @@ from sgl_sim import integration_time_for_snr
 r = integration_time_for_snr(7.0, distance_source=30 * u.pc, aperture_m=1.0, n_pixels=1000)
 print(f"{r['per_pixel_s']:.2e} s per pixel, corona/blur = {r['corona'] / r['blur']:.0f}")
 # 1.77e+07 s per pixel, corona/blur = 18195   (Toth & Turyshev 2021: 1.33e7 s)
+```
+
+## 10. One telescope or a swarm? Physical image simulation
+```python
+from astropy import units as u
+from sgl_sim.imaging import simulate_sgl_observation
+
+# Proxima b as a cloud-free Earth, 32 x 32 pixels, 1 m telescopes, SNR 7.
+# Tidally locked: it turns once per orbit (11.19 days) as seen from afar.
+kw = dict(n_pixels=32, distance_source=1.301 * u.pc, planet_radius=1.07 * 6.371e6,
+          insolation_earth=0.65, rot_period_hours=268.6, geometric_albedo=0.367)
+one = simulate_sgl_observation("earth", n_telescopes=1, **kw)
+print(f"{one['per_pixel_s']:.0f} s/pixel, one telescope: {one['scan_hours']:.1f} h scan, "
+      f"smeared {one['smear_factor']:.1f}x, SSIM {one['ssim']:.2f}; needs {one['telescopes_needed']} telescopes")
+swarm = simulate_sgl_observation("earth", n_telescopes=one["telescopes_needed"], **kw)
+print(f"swarm of {swarm['n_telescopes']}: {swarm['scan_hours']:.1f} h scan, SSIM {swarm['ssim']:.2f}")
+# 70 s/pixel, one telescope: 14.3 h scan, smeared 5.4x, SSIM 0.79; needs 6 telescopes
+# swarm of 6: 2.4 h scan, SSIM 0.91
 ```

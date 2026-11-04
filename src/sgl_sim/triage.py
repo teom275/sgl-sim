@@ -41,6 +41,7 @@ CATALOG_12_CANDIDATES: List[Dict[str, Any]] = [
         "tidally_locked": True,
         "radius_measured": True,  # True: transit radius; False: estimated from minimum mass
         "confirmed": True,
+        "insolation_earth": 0.66,  # approximate literature value (S / S_earth)
         "host_star_mag": 18.8,
         "proper_motion_mas_yr": 1005.0,
         "description": "Temperate Earth-sized planet in the TRAPPIST-1 habitable zone; near-ecliptic plane.",
@@ -55,6 +56,7 @@ CATALOG_12_CANDIDATES: List[Dict[str, Any]] = [
         "tidally_locked": True,
         "radius_measured": False,  # True: transit radius; False: estimated from minimum mass
         "confirmed": True,
+        "insolation_earth": 1.38,  # approximate literature value (S / S_earth)
         "host_star_mag": 11.1,
         "proper_motion_mas_yr": 1362.0,
         "description": "Nearby temperate world around quiet M dwarf; directly on the celestial equator/ecliptic.",
@@ -69,6 +71,7 @@ CATALOG_12_CANDIDATES: List[Dict[str, Any]] = [
         "tidally_locked": True,
         "radius_measured": True,  # True: transit radius; False: estimated from minimum mass
         "confirmed": True,
+        "insolation_earth": 1.12,  # approximate literature value (S / S_earth)
         "host_star_mag": 18.8,
         "proper_motion_mas_yr": 1005.0,
         "description": "Inner habitable zone planet in the TRAPPIST-1 multi-planet corridor.",
@@ -83,6 +86,7 @@ CATALOG_12_CANDIDATES: List[Dict[str, Any]] = [
         "tidally_locked": True,
         "radius_measured": True,  # True: transit radius; False: estimated from minimum mass
         "confirmed": True,
+        "insolation_earth": 0.38,  # approximate literature value (S / S_earth)
         "host_star_mag": 18.8,
         "proper_motion_mas_yr": 1005.0,
         "description": "Outer habitable zone volatile-rich candidate in the TRAPPIST-1 corridor.",
@@ -97,6 +101,7 @@ CATALOG_12_CANDIDATES: List[Dict[str, Any]] = [
         "tidally_locked": True,
         "radius_measured": False,  # True: transit radius; False: estimated from minimum mass
         "confirmed": True,
+        "insolation_earth": 0.65,  # approximate literature value (S / S_earth)
         "host_star_mag": 11.1,
         "proper_motion_mas_yr": 3859.0,
         "description": "Closest known exoplanet; maximum optical photon flux, high ecliptic inclination.",
@@ -111,6 +116,7 @@ CATALOG_12_CANDIDATES: List[Dict[str, Any]] = [
         "tidally_locked": True,
         "radius_measured": False,  # True: transit radius; False: estimated from minimum mass
         "confirmed": True,
+        "insolation_earth": 1.3,  # approximate literature value (S / S_earth)
         "host_star_mag": 10.1,
         "proper_motion_mas_yr": 1157.0,
         "description": "Nearby super-Earth in the habitable zone at moderate ecliptic inclination.",
@@ -125,6 +131,7 @@ CATALOG_12_CANDIDATES: List[Dict[str, Any]] = [
         "tidally_locked": True,
         "radius_measured": True,  # True: transit radius; False: estimated from minimum mass
         "confirmed": True,
+        "insolation_earth": 0.43,  # approximate literature value (S / S_earth)
         "host_star_mag": 14.1,
         "proper_motion_mas_yr": 676.0,
         "description": "Dense super-Earth around inactive M dwarf; high atmospheric retention.",
@@ -139,6 +146,7 @@ CATALOG_12_CANDIDATES: List[Dict[str, Any]] = [
         "tidally_locked": True,
         "radius_measured": False,  # True: transit radius; False: estimated from minimum mass
         "confirmed": True,
+        "insolation_earth": 1.08,  # approximate literature value (S / S_earth)
         "host_star_mag": 15.1,
         "proper_motion_mas_yr": 6312.0,
         "description": "Very high Earth similarity index (ESI=0.95); large proper-motion lateral drift.",
@@ -153,6 +161,7 @@ CATALOG_12_CANDIDATES: List[Dict[str, Any]] = [
         "tidally_locked": False,
         "radius_measured": False,  # True: transit radius; False: estimated from minimum mass
         "confirmed": False,
+        "insolation_earth": 1.5,  # approximate literature value (S / S_earth)
         "host_star_mag": 3.5,
         "proper_motion_mas_yr": 1920.0,
         "description": "Unconfirmed radial-velocity candidate around a solar-analog G dwarf; radius and rotation are assumed.",
@@ -167,6 +176,7 @@ CATALOG_12_CANDIDATES: List[Dict[str, Any]] = [
         "tidally_locked": True,
         "radius_measured": False,  # True: transit radius; False: estimated from minimum mass
         "confirmed": True,
+        "insolation_earth": 1.06,  # approximate literature value (S / S_earth)
         "host_star_mag": 9.9,
         "proper_motion_mas_yr": 3737.0,
         "description": "Temperate super-Earth (1.35 M_earth) around GJ 273 near the ecliptic.",
@@ -181,6 +191,7 @@ CATALOG_12_CANDIDATES: List[Dict[str, Any]] = [
         "tidally_locked": True,
         "radius_measured": True,  # True: transit radius; False: estimated from minimum mass
         "confirmed": True,
+        "insolation_earth": 0.87,  # approximate literature value (S / S_earth)
         "host_star_mag": 13.1,
         "proper_motion_mas_yr": 153.0,
         "description": "NASA TESS discovered habitable-zone planet; highly inclined ecliptic polar trajectory.",
@@ -195,6 +206,7 @@ CATALOG_12_CANDIDATES: List[Dict[str, Any]] = [
         "tidally_locked": True,
         "radius_measured": True,  # True: transit radius; False: estimated from minimum mass
         "confirmed": True,
+        "insolation_earth": 0.29,  # approximate literature value (S / S_earth)
         "host_star_mag": 14.6,
         "proper_motion_mas_yr": 12.0,
         "description": "Historic first Earth-sized planet in habitable zone; distant target with low photon flux.",
@@ -257,6 +269,13 @@ def compute_motion_blur(
     """
     Analyze rotational motion blur and compute scan time & Delta-V for a single craft vs. swarm.
 
+    .. note::
+       This is the simplified legacy model: a fixed dwell time per pixel and a
+       1 m-pixel Wiener reconstruction. For a physical simulation, with
+       integration times from the photon budget, the SGL blur matrix, corona
+       noise and a rotating surface, use
+       :func:`sgl_sim.imaging.simulate_sgl_observation`.
+
     Parameters
     ----------
     image_diameter_km : float
@@ -304,13 +323,12 @@ def compute_motion_blur(
     t_max_blur_hours = p_rot_h / (np.pi * float(n_pix))
     t_max_blur_s = t_max_blur_hours * 3600.0
 
-    # 3. Motion Blur Smearing Factor (eta_blur)
-    if tidally_locked:
-        # Minimal atmospheric circulation / cloud motion blur
-        eta_blur = 0.05
-    else:
-        # Scan duration divided by blur threshold
-        eta_blur = float(total_scan_hours / max(1e-4, t_max_blur_hours))
+    # 3. Motion Blur Smearing Factor (eta_blur) = scan duration / blur threshold.
+    # A tidally locked planet still turns once per orbit relative to a distant
+    # observer, so it is NOT exempt: pass its orbital period as
+    # planet_rot_period_hours. (Earlier versions forced eta_blur = 0.05 for
+    # locked planets; see docs/auditoria-fisica.md, finding C3.)
+    eta_blur = float(total_scan_hours / max(1e-4, t_max_blur_hours))
 
     # 4. Spacecraft Delta-V Fuel Budget per satellite
     # Lateral raster/spiral repositioning across footprint:
@@ -573,6 +591,7 @@ def get_ranked_catalog(z_rec_au: float = 650.0) -> List[Dict[str, Any]]:
         res["description"] = cand.get("description", "")
         res["radius_measured"] = bool(cand.get("radius_measured", False))
         res["confirmed"] = bool(cand.get("confirmed", True))
+        res["insolation_earth"] = float(cand.get("insolation_earth", 1.0))
         ranked.append(res)
 
     ranked.sort(key=lambda x: x["sgl_score"], reverse=True)

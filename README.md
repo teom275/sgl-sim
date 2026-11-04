@@ -19,7 +19,7 @@
 
 ![sgl-sim web simulator](docs/assets/web_simulator.png)
 
-> **Model under review.** A [physics audit](docs/auditoria-fisica.md) (in Spanish) checked sgl-sim against the SGL literature. The caustic size, corona, proper motion, catalogue data and the photon budget are fixed. The image reconstruction, planet rotation, image motion and the target ranking are still being reworked, so treat the imaging, blur and triage results as provisional.
+> **Model under review.** A [physics audit](docs/auditoria-fisica.md) (in Spanish) checked sgl-sim against the SGL literature. Fixed so far: caustic size, corona, proper motion, catalogue data, the photon budget, a physical image simulator (SGL blur matrix, corona noise, reconstruction) and planet rotation during the scan. Still pending: the motion of the image across the focal plane, the trajectory model and the target score, so treat the ranking as provisional.
 
 ---
 
@@ -32,7 +32,8 @@
 - **Orbits and station keeping:** focal-line hover Δv, scan Δv, image-cylinder size, and black-hole ISCO.
 - **Targets:** resolver for the NASA Exoplanet Archive (TAP, with a curated offline catalogue of 15 targets). It returns the antipodal telescope pointing, 3D heliocentric position, ecliptic inclination, light delay and proper-motion drift.
 - **Triage:** 0–100 feasibility score and mission tier, all-sky efficiency map, multi-target co-alignment check, and rotational motion blur for one spacecraft vs. a swarm.
-- **Reference bodies:** cloud-free Earth and schematic near-side Moon albedo maps (`earth_albedo_map`, `moon_albedo_map`) that plug into any imaging routine as `ground_truth`.
+- **Image simulation:** `sgl_sim.imaging.simulate_sgl_observation` models a rotating planet scanned by N telescopes. It includes the 1/ρ SGL blur on D/N pixels, corona photon noise and reconstruction, and reports the swarm size or aperture needed for a sharp image.
+- **Reference bodies:** cloud-free Earth and schematic Moon albedo maps (global, so they can rotate) (`earth_albedo_map`, `moon_albedo_map`) that plug into any imaging routine as `ground_truth`.
 - **Export:** multi-extension FITS (`CAUSTIC_MAP`, `RAW_DETECTOR`, `DECONV_EXO`, `PSF_PROFILE`), CSV and JSON.
 
 ---
@@ -63,7 +64,7 @@ The best candidates come from `sgl_sim.get_ranked_catalog()`, which scores a cur
 "Planet image" is the diameter of the planet's image at the focal line, which is the area the spacecraft must scan. Tier 1 targets suit a single craft or a swarm. Tier 3 targets sit far from the ecliptic and need a costly launch. The [web simulator's mission planner](https://teom275.github.io/sgl-sim/#targets) opens a full mission profile for each planet:
 - where to send the spacecraft (pointing, heliocentric position, distance from the ecliptic, all-sky map)
 - the trip (cruise time, signal delay, image size, drift, scan Δv)
-- whether one spacecraft is enough or a swarm is needed. A toggle swaps in the surface of the **Earth or the Moon**, keeping the target's distance, rotation and noise, as a reference for image quality.
+- the imaging requirements, from a physical simulation: exposure per pixel, scan time, how many 1 m telescopes keep a 32 × 32 or 64 × 64 image sharp while the planet rotates, and the minimum aperture when no swarm suffices. A toggle swaps in the surface of the **Earth or the Moon**, keeping the target's distance, rotation and noise, as a reference for image quality.
 - the score breakdown
 - which other targets share the trajectory
 

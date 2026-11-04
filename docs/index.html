@@ -141,7 +141,7 @@
     <section class="scene" id="targets" aria-labelledby="h-targets">
       <h2 id="h-targets" data-i18n="targets.h">Which planets should a solar-lens telescope image first?</h2>
       <p class="lede" data-i18n="targets.lede">Each known nearby planet gets a feasibility score out of 100, computed for a spacecraft at 650 AU. The score weighs how much light reaches the detector (30%), how long the image takes to scan (25%), how close the target is to the ecliptic, where it is cheaper to fly (25%), and how little the planet's rotation blurs the scan (20%). Pick a planet to see its full mission.</p>
-      <aside class="review" role="note" data-i18n="review.note"><b>Model under review.</b> A physics audit found that the photon budget, image reconstruction, planet rotation and image motion behind this planner were too optimistic. The ranking and the "one spacecraft or a swarm" verdict will change. Fixed so far: caustic size, corona, proper motion, catalogue data and the photon budget. <a href="https://github.com/teom275/sgl-sim/blob/main/docs/auditoria-fisica.md">Read the audit</a> (in Spanish).</aside>
+      <aside class="review" role="note" data-i18n="review.note"><b>Model under review.</b> A physics audit found the original model far too optimistic. Fixed so far: photon budget, image reconstruction, planet rotation, caustic size, corona, proper motion and catalogue data, so the images and the "one telescope or a swarm" answers below are now physical. Still pending: the motion of the planet's image across the focal plane, the trajectory model and the score, so <b>the ranking itself is still provisional</b>. <a href="https://github.com/teom275/sgl-sim/blob/main/docs/auditoria-fisica.md">Read the audit</a> (in Spanish).</aside>
       <div class="table-wrap">
         <table class="targets">
           <thead>
@@ -200,8 +200,6 @@
               <dt data-i18n="m.imgdiam">Image diameter to scan</dt><dd class="sol" id="m-img"></dd>
               <dt data-i18n="m.drift">Proper-motion drift</dt><dd id="m-drift"></dd>
               <dt data-i18n="m.driftyr">Drift per year</dt><dd id="m-driftyr"></dd>
-              <dt data-i18n="m.dv">Scan Δv, one spacecraft</dt><dd id="m-dv1"></dd>
-              <dt id="m-dvn-label"></dt><dd id="m-dvn"></dd>
             </dl>
             <h4 class="sub" data-i18n="m.breakdown">Why it scores this way</h4>
             <div class="bars" id="m-bars"></div>
@@ -209,7 +207,14 @@
 
           <section class="panel">
             <h4 data-i18n="m.imaging">One spacecraft or a swarm?</h4>
-            <p class="panel-lede" data-i18n="m.imaging.lede">The planet turns during the scan, which smears the image. Several spacecraft scan in parallel and finish sooner.</p>
+            <p class="panel-lede" data-i18n="m.imaging.lede">Each pixel needs a long exposure to beat the glare of the solar corona, and the planet turns while the image is scanned. Several telescopes scanning in parallel finish before it turns too far. Simulated with the photon budget, the lens blur, noise and rotation.</p>
+            <dl class="readout">
+              <dt data-i18n="m.tpix">Exposure per pixel (1 m telescope, SNR 7)</dt><dd id="m-tpix"></dd>
+              <dt data-i18n="m.scan1">Full 32 × 32 scan with one telescope</dt><dd id="m-scan1"></dd>
+              <dt data-i18n="m.tsharp">Longest scan before rotation blurs it</dt><dd id="m-tsharp"></dd>
+              <dt data-i18n="m.need32">Telescopes for a sharp 32 × 32 image</dt><dd class="sol" id="m-need32"></dd>
+              <dt data-i18n="m.need64">Telescopes for a sharp 64 × 64 image</dt><dd id="m-need64"></dd>
+            </dl>
             <div class="surface-pick" role="radiogroup" aria-labelledby="surface-label">
               <span id="surface-label" data-i18n="m.surface">Surface</span>
               <div class="seg-group">
@@ -223,8 +228,8 @@
               <figure><div class="canvas square"><canvas id="cv-b1" aria-label="Reconstruction with one spacecraft"></canvas></div><figcaption id="m-b1"></figcaption></figure>
               <figure><div class="canvas square"><canvas id="cv-bn" aria-label="Reconstruction with a swarm"></canvas></div><figcaption id="m-bn"></figcaption></figure>
             </div>
-            <p class="hint" id="m-surface-note"></p>
             <p class="status" id="m-verdict"></p>
+            <p class="hint" id="m-surface-note"></p>
             <h4 class="sub" data-i18n="m.shared">Shared trajectory</h4>
             <p class="panel-text" id="m-shared"></p>
           </section>
