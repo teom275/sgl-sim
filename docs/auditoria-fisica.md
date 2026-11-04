@@ -19,6 +19,24 @@ Mi opinión: el ranking actual no sirve para decidir misiones, y el paper no deb
 
 ---
 
+## Estado de las correcciones
+
+| Hallazgo | Estado | Qué cambió |
+|---|---|---|
+| H4 · Movimiento propio | ✅ Corregido | Total = √(μ_α*² + μ_δ²). La deriva de Próxima pasa de 28,4 a 57,6 m/s, y los dos caminos de código coinciden. Hay test. |
+| H3 · Catálogo | ✅ Corregido | Periodos de LHS 1140 b (593,8 h) y Kepler-186 f (3.117,6 h). Nuevos campos `radius_measured` y `confirmed`: Tau Ceti e figura como no confirmado y 6 radios como estimados. El sitio los muestra. |
+| H1 · Cáustica | ✅ Corregido | a = 2 J₂ R² sin²β_s / b, que da 287,4 m · √(650 AU/z) para J₂ = 2,25 × 10⁻⁷ (como en Turyshev y Toth). Nuevo `solar_axis_sin2_beta()` con el polo solar de la IAU. Está corregido también en JavaScript y en ManimGL. |
+| M1 · Corona | ✅ Corregido | Forma clásica de Baumbach: 10⁻⁶ [0,0532 r⁻²·⁵ + 1,425 r⁻⁷ + 2,565 r⁻¹⁷]. |
+| C1 · Balance de fotones (SNR) | ✅ Corregido | Nuevo `sgl_sim.radiometry` con desenfoque de fuente extendida, señal del píxel y corona en el anillo. Reproduce el caso de referencia de Toth y Turyshev (30 pc, 1 m, N = 1000: 1,8 × 10⁷ s por píxel frente a 1,33 × 10⁷) y tiene tests. `calculate_snr` y el trade usan este modelo. Pendiente: verificar los demás casos publicados (p. ej. Próxima con 1000 × 1000) contra los papers. |
+| C2 · Reconstrucción de la imagen | ⏳ Pendiente | La PSF todavía se muestrea con píxeles de 1 m. |
+| C3 · Rotación y fases | ⏳ Pendiente | "Basta con una nave" sigue siendo un artefacto. |
+| C4, M2, M3 · Movimiento de la imagen | ⏳ Pendiente | |
+| M4 · Trayectoria | ⏳ Pendiente | |
+| H2 · Puntaje y ranking | ⏳ Pendiente | Depende de C2–C4 y M4. |
+| M5, B1 · Agujero negro, CI, afirmaciones | ⏳ Pendiente | |
+
+El sitio y el dashboard muestran un aviso de "modelo en revisión" con enlace a este documento.
+
 ## 1. Qué está bien (verificado)
 
 | Magnitud | Paquete | Literatura / comprobación |

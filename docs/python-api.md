@@ -26,6 +26,7 @@ The examples below run in order as a single script: later examples reuse variabl
 | `sgl_sim.tradespace` | Distance × aperture SNR trade | `evaluate_tradespace` |
 | `sgl_sim.targets` | Exoplanet resolver and deployment geometry | `resolve_exoplanet`, `compute_sgl_deployment_vector`, `list_curated_targets`, `TOP_15_SGL_TARGETS` |
 | `sgl_sim.triage` | Feasibility scoring, sky map, swarm motion blur | `score_exoplanet_candidate`, `get_ranked_catalog`, `generate_sky_efficiency_map`, `check_mission_coalignment`, `compute_motion_blur`, `CATALOG_12_CANDIDATES` |
+| `sgl_sim.radiometry` | Photon budget of an extended source through the SGL: blur, pixel signal and solar corona; integration time for a target SNR | `sgl_photon_budget`, `integration_time_for_snr`, `solar_photon_flux` |
 | `sgl_sim.reference_bodies` | Earth and Moon albedo maps to compare image quality against a familiar world | `earth_albedo_map`, `moon_albedo_map`, `reference_body_map`, `REFERENCE_BODIES` |
 | `sgl_sim.exporters` | FITS, CSV and JSON output | `build_simulation_fits_hdulist`, `export_fits`, `export_csv`, `export_json` |
 
@@ -98,7 +99,7 @@ from sgl_sim import generate_exoplanet_map, wiener_deconvolution, calculate_snr
 # Calculate per-pixel SNR for 1m telescope, 1-day integration
 snr_budget = calculate_snr(z_rec=650.0 * u.AU, aperture_m=1.0 * u.m)
 snr = snr_budget["snr"]
-print(f"Per-pixel SNR: {snr:.1f}")
+print(f"Per-pixel SNR: {snr:.1f}")  # 32 x 32 image, 1 day, corona included
 
 # Generate ground truth exoplanet map (continents + oceans + polar caps)
 ground_truth = generate_exoplanet_map(grid_size=32, seed=42)
@@ -107,8 +108,8 @@ ground_truth = generate_exoplanet_map(grid_size=32, seed=42)
 result = wiener_deconvolution(ground_truth=ground_truth, psf_kernel=psf_kernel_2d, snr=snr)
 print(f"Noisy RMSE: {result['rmse_noisy']:.4f} -> Deconvolved RMSE: {result['rmse_deconvolved']:.4f}")
 print(f"Reconstructed SSIM: {result['ssim_deconvolved']:.4f}")
-# Noisy RMSE: 0.2236 -> Deconvolved RMSE: 0.0179
-# Reconstructed SSIM: 0.9976
+# Noisy RMSE: 0.2236 -> Deconvolved RMSE: 0.0305
+# Reconstructed SSIM: 0.9930
 ```
 
 ## 5. NASA multi-extension FITS export
@@ -208,4 +209,15 @@ for n in (1, 8):
     print(f"N={n}: smear {res['eta_blur']:.2f}x | RMSE {res['rmse']:.3f} | SSIM {res['ssim']:.2f}")
 # N=1: smear 8.17x | RMSE 0.056 | SSIM 0.83
 # N=8: smear 1.02x | RMSE 0.048 | SSIM 0.88
+```
+
+## 9. How long does an image take? Photon budget
+```python
+from astropy import units as u
+from sgl_sim import integration_time_for_snr
+
+# Earth twin at 30 pc, 1 m telescope at 650 AU, 1000 x 1000 pixels, SNR 7
+r = integration_time_for_snr(7.0, distance_source=30 * u.pc, aperture_m=1.0, n_pixels=1000)
+print(f"{r['per_pixel_s']:.2e} s per pixel, corona/blur = {r['corona'] / r['blur']:.0f}")
+# 1.77e+07 s per pixel, corona/blur = 18195   (Toth & Turyshev 2021: 1.33e7 s)
 ```

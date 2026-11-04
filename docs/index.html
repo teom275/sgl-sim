@@ -99,7 +99,7 @@
           <dl class="readout">
             <dt data-i18n="caustic.dt.n">Images on the ring</dt><dd id="r-nimg"></dd>
             <dt data-i18n="caustic.dt.val">Astroid test value</dt><dd id="r-astroid"></dd>
-            <dt data-i18n="caustic.dt.a">Astroid semi-width</dt><dd id="r-a"></dd>
+            <dt data-i18n="caustic.dt.a">Astroid semi-width (max.)</dt><dd id="r-a"></dd>
           </dl>
           <p class="hint" data-i18n="caustic.hint">Drag or tap in the receiver plane. A test value below 1 means inside the astroid.</p>
         </div>
@@ -141,6 +141,7 @@
     <section class="scene" id="targets" aria-labelledby="h-targets">
       <h2 id="h-targets" data-i18n="targets.h">Which planets should a solar-lens telescope image first?</h2>
       <p class="lede" data-i18n="targets.lede">Each known nearby planet gets a feasibility score out of 100, computed for a spacecraft at 650 AU. The score weighs how much light reaches the detector (30%), how long the image takes to scan (25%), how close the target is to the ecliptic, where it is cheaper to fly (25%), and how little the planet's rotation blurs the scan (20%). Pick a planet to see its full mission.</p>
+      <aside class="review" role="note" data-i18n="review.note"><b>Model under review.</b> A physics audit found that the photon budget, image reconstruction, planet rotation and image motion behind this planner were too optimistic. The ranking and the "one spacecraft or a swarm" verdict will change. Fixed so far: caustic size, corona, proper motion, catalogue data and the photon budget. <a href="https://github.com/teom275/sgl-sim/blob/main/docs/auditoria-fisica.md">Read the audit</a> (in Spanish).</aside>
       <div class="table-wrap">
         <table class="targets">
           <thead>

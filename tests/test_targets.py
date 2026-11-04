@@ -200,3 +200,16 @@ def test_api_target_ephemeris_endpoint(client):
     assert d["telescope_constellation"] == "Cassiopeia"
     assert pytest.approx(550.0, rel=1e-6) == d["vector_norm_au"]
     assert pytest.approx(3.17, abs=0.02) == d["light_delay_days"]
+
+
+def test_proper_motion_total_does_not_double_count_cos_dec():
+    """pmra is mu_alpha* (includes cos dec); the total is a plain quadrature sum."""
+    from sgl_sim import compute_sgl_deployment_vector, resolve_exoplanet
+    from sgl_sim.triage import CATALOG_12_CANDIDATES
+
+    eph = compute_sgl_deployment_vector("Proxima Centauri b", z_rec_au=650.0)
+    assert eph["target_pm_total_mas_yr"] == pytest.approx(np.hypot(-3781.74, 769.46), rel=1e-6)  # 3859 mas/yr
+    # Both code paths (deployment vector and triage) now agree on the drift.
+    tri = next(c for c in CATALOG_12_CANDIDATES if c["name"] == "Proxima Centauri b")
+    assert eph["target_pm_total_mas_yr"] == pytest.approx(tri["proper_motion_mas_yr"], rel=1e-3)
+    assert eph["proper_motion_drift_m_s"] == pytest.approx(57.6, rel=1e-2)

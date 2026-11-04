@@ -31,6 +31,8 @@
     </div>
   </header>
 
+  <aside class="review" role="note"><b>Model under review.</b> A physics audit found that the image reconstruction, planet rotation and image motion models are too optimistic, so the imaging, blur and triage results are provisional. Fixed so far: caustic size, corona, proper motion, catalogue data and the photon budget (SNR). <a href="https://github.com/teom275/sgl-sim/blob/main/docs/auditoria-fisica.md">Read the audit</a> (in Spanish).</aside>
+
   <!-- Optical-axis ruler: the mission at a glance -->
   <section class="ruler" aria-label="Optical axis overview">
     <svg id="ruler" role="img" aria-labelledby="ruler-desc" preserveAspectRatio="none"></svg>
@@ -39,7 +41,7 @@
       <div><dt>Focal line starts</dt><dd id="k-zmin">–</dd></div>
       <div><dt>Einstein ring</dt><dd id="k-theta">–</dd></div>
       <div><dt>Peak gain</dt><dd id="k-mu">–</dd></div>
-      <div><dt>Per-pixel SNR</dt><dd id="k-snr">–</dd></div>
+      <div><dt>SNR per pixel (32 × 32 image)</dt><dd id="k-snr">–</dd></div>
       <div><dt>Image of the planet</dt><dd id="k-dimg">–</dd></div>
     </dl>
   </section>
@@ -152,7 +154,7 @@
           </div>
         </div>
         <div class="fig">
-          <header><h2>Distance × aperture trade</h2><p>Per-pixel SNR across spacecraft distance and telescope aperture, log scale, brighter is better. The ring marks the current mission.</p></header>
+          <header><h2>Distance × aperture trade</h2><p>Per-pixel SNR of a 32 × 32 image after one day, including the solar corona, across spacecraft distance and telescope aperture. Log scale, brighter is better. The ring marks the current mission.</p></header>
           <div class="plot plot-wide"><canvas id="cv-trade" aria-label="Tradespace heatmap"></canvas></div>
         </div>
       </section>

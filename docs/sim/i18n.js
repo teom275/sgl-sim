@@ -48,7 +48,7 @@
     "caustic.z": "Distancia de la nave",
     "caustic.dt.n": "Imágenes en el anillo",
     "caustic.dt.val": "Valor de prueba del astroide",
-    "caustic.dt.a": "Semiancho del astroide",
+    "caustic.dt.a": "Semiancho del astroide (máx.)",
     "caustic.hint": "Arrastra o toca el plano del receptor. Un valor de prueba menor que 1 significa que estás dentro del astroide.",
     "caustic.inside": "Dentro del astroide: cuatro imágenes forman una cruz de Einstein.",
     "caustic.outside": "Fuera del astroide: quedan dos imágenes.",
@@ -65,6 +65,8 @@
     "psf.dt.mu": "Ganancia máxima",
     "psf.dt.span": "Una apertura de 1 m abarca",
     "psf.radii": "{n} radios del núcleo",
+
+    "review.note": "<b>Modelo en revisión.</b> Una auditoría física encontró que el balance de fotones, la reconstrucción de la imagen, la rotación del planeta y el movimiento de la imagen detrás de este planificador eran demasiado optimistas. El ranking y la conclusión de «una nave o un enjambre» van a cambiar. Ya corregido: tamaño de la cáustica, corona, movimiento propio, datos del catálogo y balance de fotones. <a href=\"https://github.com/teom275/sgl-sim/blob/main/docs/auditoria-fisica.md\">Leer la auditoría</a>.",
 
     // Mission planner
     "targets.h": "¿Qué planetas debería observar primero un telescopio de lente solar?",
@@ -137,6 +139,9 @@
     "foot.1": "Las fórmulas coinciden con el paquete de Python <a href=\"https://github.com/teom275/sgl-sim\">sgl-sim</a>: deflexión en campo débil, <i>z</i>(<i>b</i>) = <i>b</i>²/2<i>R</i><sub>s</sub>, μ<sub>max</sub> = 4π²<i>R</i><sub>s</sub>/λ, la ecuación de lente cuadrupolar con <i>J</i>₂ y la función de dispersión de punto <i>J</i>₀². El análisis de misión se precalcula con <code>scripts/export_site_targets.py</code>.",
     "foot.2": "Licencia MIT · Teo Maggio",
 
+    "flag.unconfirmed": "planeta no confirmado",
+    "flag.radius": "radio estimado",
+
     // Units shown in JS
     "unit.au": "UA",
     "tier.Prime Swarm/Single Target": "Prioritario: una nave o enjambre",
@@ -147,7 +152,7 @@
     "desc.Wolf 1061 c": "Supertierra cercana en la zona habitable, con inclinación eclíptica moderada.",
     "desc.Ross 128 b": "Mundo templado cercano que orbita una enana M tranquila; justo sobre el ecuador celeste y la eclíptica.",
     "desc.Luyten b": "Supertierra templada (1,35 masas terrestres) alrededor de GJ 273, cerca de la eclíptica.",
-    "desc.Tau Ceti e": "Candidato alrededor de una enana G parecida al Sol; mundo que rota libremente y requiere un enjambre.",
+    "desc.Tau Ceti e": "Candidato no confirmado (velocidad radial) alrededor de una enana G parecida al Sol; su radio y su rotación son supuestos.",
     "desc.Teegarden's Star b": "Índice de similitud con la Tierra muy alto (ESI = 0,95); gran deriva lateral por movimiento propio.",
     "desc.LHS 1140 b": "Supertierra densa alrededor de una enana M inactiva; buena retención de atmósfera.",
     "desc.TRAPPIST-1 f": "Candidato rico en volátiles en el borde externo de la zona habitable, en el corredor de TRAPPIST-1.",

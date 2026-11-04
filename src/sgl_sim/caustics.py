@@ -26,16 +26,47 @@ from sgl_sim.optics import einstein_ring_properties, peak_magnification
 J2_SUN = 2.2e-7
 
 
+# IAU direction of the Sun's north rotation pole (ICRS), used for sin^2(beta_s).
+SUN_POLE_RA_DEG = 286.13
+SUN_POLE_DEC_DEG = 63.87
+
+
+def solar_axis_sin2_beta(ra_deg: float, dec_deg: float) -> float:
+    """
+    sin^2 of the angle beta_s between the Sun's rotation axis and the line of sight.
+
+    The quadrupole caustic scales as sin^2(beta_s): it is largest for a target
+    seen in the solar equatorial plane and vanishes for one along the solar
+    rotation axis. ``ra_deg``/``dec_deg`` can be the target or its antipode
+    (sin^2 is the same for both).
+    """
+    ra1, dec1 = np.radians(SUN_POLE_RA_DEG), np.radians(SUN_POLE_DEC_DEG)
+    ra2, dec2 = np.radians(float(ra_deg)), np.radians(float(dec_deg))
+    cos_beta = np.sin(dec1) * np.sin(dec2) + np.cos(dec1) * np.cos(dec2) * np.cos(ra1 - ra2)
+    return float(1.0 - min(1.0, cos_beta**2))
+
+
 def astroid_caustic_semi_width(
     z_rec: Union[float, u.Quantity],
     mass: Union[float, u.Quantity] = M_SUN_SI,
     star_radius: Union[float, u.Quantity] = R_SUN_SI,
     j2: float = J2_SUN,
+    sin2_beta_s: float = 1.0,
 ) -> Dict[str, float]:
     """
-    Compute the transverse astroid caustic semi-width at receiver distance z_rec:
+    Semi-width (cusp distance) of the J2 astroid caustic in the image plane:
 
-        a_caustic(z_rec) = 2 * R_star * J_2 * (z_rec / b_ring)
+        a_caustic = 2 * J2 * (R_star / b_ring)^2 * b_ring * sin^2(beta_s)
+                  = 2 * J2 * R_star^2 * sin^2(beta_s) / b_ring,   b_ring = sqrt(2 R_s z)
+
+    This is the quadrupole caustic size of Turyshev & Toth (2021, "Optical
+    properties of an extended gravitational lens"), rho_2 = 4 beta_2 / alpha with
+    beta_2 = J2 (R/b)^2 sin^2(beta_s). For the Sun it gives
+    287.4 m * sqrt(650 AU / z) * sin^2(beta_s) * (J2 / 2.25e-7): a few hundred
+    metres at most, shrinking slowly with distance.
+
+    Earlier versions used 2 R J2 z / b, which is ~1.4e5 times too large and grows
+    with z; see docs/auditoria-fisica.md (finding H1).
 
     Parameters
     ----------
@@ -46,29 +77,34 @@ def astroid_caustic_semi_width(
     star_radius : float or astropy.units.Quantity, optional
         Physical radius of the star (default: 1 solar radius).
     j2 : float, optional
-        Stellar quadrupole moment J2 (default: 2.2e-7 for Sun).
+        Stellar quadrupole moment J2 (default: 2.2e-7 for the Sun).
+    sin2_beta_s : float, optional
+        sin^2 of the angle between the stellar rotation axis and the line of
+        sight (default 1, the maximum). See :func:`solar_axis_sin2_beta`.
 
     Returns
     -------
     dict
-        Dictionary containing:
         - 'a_caustic_m': semi-width in meters
         - 'b_ring_m': Einstein ring impact parameter in meters
         - 'j2': quadrupole parameter
+        - 'sin2_beta_s': orientation factor used
     """
     z_m = _to_si_value(z_rec, u.m)
     r_star = _to_si_value(star_radius, u.m)
     m_val = _to_si_value(mass, u.kg)
+    s2 = float(np.clip(sin2_beta_s, 0.0, 1.0))
 
     rs = schwarzschild_radius(m_val)
     b_ring = np.sqrt(2.0 * rs * z_m)
 
-    a_caustic = 2.0 * r_star * float(j2) * (z_m / b_ring)
+    a_caustic = 2.0 * float(j2) * (r_star**2) * s2 / b_ring
 
     return {
         "a_caustic_m": float(a_caustic),
         "b_ring_m": float(b_ring),
         "j2": float(j2),
+        "sin2_beta_s": s2,
     }
 
 

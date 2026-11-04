@@ -95,8 +95,8 @@ def evaluate_tradespace(
             snr_val = res["snr"]
             snr_matrix[i, j] = snr_val
 
-            # In shot/background noise limited regime: SNR ∝ sqrt(t_int)
-            # t_req = t_ref * (SNR_target / SNR_ref)^2
+            # Shot-noise limited (blur + corona): SNR grows as sqrt(t), so
+            # t_req = t_ref * (SNR_target / SNR_ref)^2 per pixel.
             if snr_val > 0:
                 t_req_s = t_int_s * ((target_snr / snr_val) ** 2)
             else:

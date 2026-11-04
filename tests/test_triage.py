@@ -281,3 +281,17 @@ def test_api_sky_efficiency_endpoint(client):
     assert json_data["data"]["n_ra"] == 36
     assert json_data["data"]["n_dec"] == 18
     assert len(json_data["data"]["candidates"]) == 12
+
+
+def test_catalogue_periods_and_data_quality_flags():
+    """Synchronous rotators rotate once per orbit; flags mark estimated radii and candidates."""
+    from sgl_sim.triage import CATALOG_12_CANDIDATES, get_ranked_catalog
+
+    by = {c["name"]: c for c in CATALOG_12_CANDIDATES}
+    assert by["LHS 1140 b"]["rot_period_hrs"] == pytest.approx(24.74 * 24, rel=1e-3)
+    assert by["Kepler-186 f"]["rot_period_hrs"] == pytest.approx(129.9 * 24, rel=1e-3)
+    assert by["Tau Ceti e"]["confirmed"] is False
+    transiting = {"TRAPPIST-1 d", "TRAPPIST-1 e", "TRAPPIST-1 f", "LHS 1140 b", "TOI-700 d", "Kepler-186 f"}
+    assert {n for n, c in by.items() if c["radius_measured"]} == transiting
+    ranked = get_ranked_catalog()
+    assert all("radius_measured" in r and "confirmed" in r for r in ranked)

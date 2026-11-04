@@ -55,6 +55,11 @@ h2, h3 { margin: 0; }
 .btn.primary { background: var(--ink); color: var(--void); border-color: var(--ink); font-weight: 500; }
 .btn.primary:hover { background: #fff; }
 
+/* ---------- review notice ---------- */
+.review { margin: 0; padding: 10px 24px; background: var(--surface); border-bottom: 1px solid var(--rule);
+  box-shadow: inset 3px 0 0 var(--flare); font-size: 14px; }
+.review b { font-weight: 600; }
+
 /* ---------- optical-axis ruler ---------- */
 .ruler { padding: 18px 24px 16px; border-bottom: 1px solid var(--rule); }
 #ruler { display: block; width: 100%; height: 72px; overflow: visible; }

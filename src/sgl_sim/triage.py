@@ -39,6 +39,8 @@ CATALOG_12_CANDIDATES: List[Dict[str, Any]] = [
         "radius_earth": 0.920,
         "rot_period_hrs": 146.4,
         "tidally_locked": True,
+        "radius_measured": True,  # True: transit radius; False: estimated from minimum mass
+        "confirmed": True,
         "host_star_mag": 18.8,
         "proper_motion_mas_yr": 1005.0,
         "description": "Temperate Earth-sized planet in the TRAPPIST-1 habitable zone; near-ecliptic plane.",
@@ -51,6 +53,8 @@ CATALOG_12_CANDIDATES: List[Dict[str, Any]] = [
         "radius_earth": 1.11,
         "rot_period_hrs": 237.6,
         "tidally_locked": True,
+        "radius_measured": False,  # True: transit radius; False: estimated from minimum mass
+        "confirmed": True,
         "host_star_mag": 11.1,
         "proper_motion_mas_yr": 1362.0,
         "description": "Nearby temperate world around quiet M dwarf; directly on the celestial equator/ecliptic.",
@@ -63,6 +67,8 @@ CATALOG_12_CANDIDATES: List[Dict[str, Any]] = [
         "radius_earth": 0.788,
         "rot_period_hrs": 97.2,
         "tidally_locked": True,
+        "radius_measured": True,  # True: transit radius; False: estimated from minimum mass
+        "confirmed": True,
         "host_star_mag": 18.8,
         "proper_motion_mas_yr": 1005.0,
         "description": "Inner habitable zone planet in the TRAPPIST-1 multi-planet corridor.",
@@ -75,6 +81,8 @@ CATALOG_12_CANDIDATES: List[Dict[str, Any]] = [
         "radius_earth": 1.045,
         "rot_period_hrs": 220.8,
         "tidally_locked": True,
+        "radius_measured": True,  # True: transit radius; False: estimated from minimum mass
+        "confirmed": True,
         "host_star_mag": 18.8,
         "proper_motion_mas_yr": 1005.0,
         "description": "Outer habitable zone volatile-rich candidate in the TRAPPIST-1 corridor.",
@@ -87,6 +95,8 @@ CATALOG_12_CANDIDATES: List[Dict[str, Any]] = [
         "radius_earth": 1.03,
         "rot_period_hrs": 268.3,
         "tidally_locked": True,
+        "radius_measured": False,  # True: transit radius; False: estimated from minimum mass
+        "confirmed": True,
         "host_star_mag": 11.1,
         "proper_motion_mas_yr": 3859.0,
         "description": "Closest known exoplanet; maximum optical photon flux, high ecliptic inclination.",
@@ -99,6 +109,8 @@ CATALOG_12_CANDIDATES: List[Dict[str, Any]] = [
         "radius_earth": 1.66,
         "rot_period_hrs": 429.6,
         "tidally_locked": True,
+        "radius_measured": False,  # True: transit radius; False: estimated from minimum mass
+        "confirmed": True,
         "host_star_mag": 10.1,
         "proper_motion_mas_yr": 1157.0,
         "description": "Nearby super-Earth in the habitable zone at moderate ecliptic inclination.",
@@ -109,8 +121,10 @@ CATALOG_12_CANDIDATES: List[Dict[str, Any]] = [
         "dec_deg": -15.2705,
         "dist_pc": 14.99,
         "radius_earth": 1.73,
-        "rot_period_hrs": 314.4,
+        "rot_period_hrs": 593.8,  # = orbital period (synchronous rotation)
         "tidally_locked": True,
+        "radius_measured": True,  # True: transit radius; False: estimated from minimum mass
+        "confirmed": True,
         "host_star_mag": 14.1,
         "proper_motion_mas_yr": 676.0,
         "description": "Dense super-Earth around inactive M dwarf; high atmospheric retention.",
@@ -123,6 +137,8 @@ CATALOG_12_CANDIDATES: List[Dict[str, Any]] = [
         "radius_earth": 1.05,
         "rot_period_hrs": 117.6,
         "tidally_locked": True,
+        "radius_measured": False,  # True: transit radius; False: estimated from minimum mass
+        "confirmed": True,
         "host_star_mag": 15.1,
         "proper_motion_mas_yr": 6312.0,
         "description": "Very high Earth similarity index (ESI=0.95); large proper-motion lateral drift.",
@@ -135,9 +151,11 @@ CATALOG_12_CANDIDATES: List[Dict[str, Any]] = [
         "radius_earth": 1.80,
         "rot_period_hrs": 35.0,
         "tidally_locked": False,
+        "radius_measured": False,  # True: transit radius; False: estimated from minimum mass
+        "confirmed": False,
         "host_star_mag": 3.5,
         "proper_motion_mas_yr": 1920.0,
-        "description": "Candidate around solar analog G-dwarf; rotating non-locked world requiring swarm.",
+        "description": "Unconfirmed radial-velocity candidate around a solar-analog G dwarf; radius and rotation are assumed.",
     },
     {
         "name": "Luyten b",
@@ -147,6 +165,8 @@ CATALOG_12_CANDIDATES: List[Dict[str, Any]] = [
         "radius_earth": 1.18,
         "rot_period_hrs": 446.4,
         "tidally_locked": True,
+        "radius_measured": False,  # True: transit radius; False: estimated from minimum mass
+        "confirmed": True,
         "host_star_mag": 9.9,
         "proper_motion_mas_yr": 3737.0,
         "description": "Temperate super-Earth (1.35 M_earth) around GJ 273 near the ecliptic.",
@@ -159,6 +179,8 @@ CATALOG_12_CANDIDATES: List[Dict[str, Any]] = [
         "radius_earth": 1.14,
         "rot_period_hrs": 897.6,
         "tidally_locked": True,
+        "radius_measured": True,  # True: transit radius; False: estimated from minimum mass
+        "confirmed": True,
         "host_star_mag": 13.1,
         "proper_motion_mas_yr": 153.0,
         "description": "NASA TESS discovered habitable-zone planet; highly inclined ecliptic polar trajectory.",
@@ -169,8 +191,10 @@ CATALOG_12_CANDIDATES: List[Dict[str, Any]] = [
         "dec_deg": 44.1500,
         "dist_pc": 178.5,
         "radius_earth": 1.17,
-        "rot_period_hrs": 312.0,
+        "rot_period_hrs": 3117.6,  # = orbital period (synchronous rotation)
         "tidally_locked": True,
+        "radius_measured": True,  # True: transit radius; False: estimated from minimum mass
+        "confirmed": True,
         "host_star_mag": 14.6,
         "proper_motion_mas_yr": 12.0,
         "description": "Historic first Earth-sized planet in habitable zone; distant target with low photon flux.",
@@ -547,6 +571,8 @@ def get_ranked_catalog(z_rec_au: float = 650.0) -> List[Dict[str, Any]]:
             z_rec_au=z_rec_au,
         )
         res["description"] = cand.get("description", "")
+        res["radius_measured"] = bool(cand.get("radius_measured", False))
+        res["confirmed"] = bool(cand.get("confirmed", True))
         ranked.append(res)
 
     ranked.sort(key=lambda x: x["sgl_score"], reverse=True)

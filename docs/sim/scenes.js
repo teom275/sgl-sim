@@ -532,6 +532,14 @@
     return T(`tier.${en}`, null, en);
   };
   const descOf = (t) => T(`desc.${t.name}`, null, t.description);
+  /** Data-quality labels: unconfirmed planet, radius estimated from minimum mass. */
+  const flagsOf = (t) => {
+    const f = [];
+    if (t.confirmed === false) f.push(T("flag.unconfirmed", null, "unconfirmed planet"));
+    if (t.radius_measured === false) f.push(T("flag.radius", null, "estimated radius"));
+    return f;
+  };
+  const flagsHtml = (t) => flagsOf(t).map((x) => `<em class="flag">${esc(x)}</em>`).join(" ");
   const albedo = (v) => {
     // dark → starlight blue → warm white, as in the dashboard
     const stops = [[0, [23, 27, 36]], [0.35, [52, 84, 130]], [0.7, [169, 210, 255]], [1, [255, 240, 214]]];
@@ -705,7 +713,7 @@
       const sel = i === planner.index;
       return `<tr class="pick ${low ? "low" : ""}" data-i="${i}" aria-selected="${sel}">
         <td class="num">${i + 1}</td>
-        <td class="planet"><button type="button" data-i="${i}" aria-label="${esc(T("targets.select", { name: t.name }, `See the mission to ${t.name}`))}">${esc(t.name)}</button><span>${esc(descOf(t))}</span></td>
+        <td class="planet"><button type="button" data-i="${i}" aria-label="${esc(T("targets.select", { name: t.name }, `See the mission to ${t.name}`))}">${esc(t.name)}</button><span>${esc(descOf(t))}</span>${flagsHtml(t) ? `<span class="flags">${flagsHtml(t)}</span>` : ""}</td>
         <td class="num">${N(t.dist_pc, 2)} pc<br><small>${esc(T("m.ly", { n: N(t.dist_pc * 3.2616, 1) }, `${N(t.dist_pc * 3.2616, 1)} ly`))}</small></td>
         <td class="num">${N(t.image_diameter_km, 1)} km</td>
         <td>${esc(t.telescope_constellation)}</td>
@@ -723,7 +731,7 @@
     const many = m.blur.swarm;
     $("mission").hidden = false;
     $("m-name").textContent = t.name;
-    $("m-desc").textContent = descOf(t);
+    $("m-desc").innerHTML = `${esc(descOf(t))}${flagsHtml(t) ? ` <span class="flags">${flagsHtml(t)}</span>` : ""}`;
     $("m-score").innerHTML = `${N(t.sgl_score, 1)} <small>/ 100</small>`;
     $("m-tier").textContent = tierLabel(t.tier);
 
