@@ -28,7 +28,10 @@ from typing import Dict, Tuple
 
 import numpy as np
 
-__all__ = ["earth_albedo_map", "moon_albedo_map", "reference_body_map", "REFERENCE_BODIES"]
+__all__ = [
+    "earth_albedo_map", "moon_albedo_map", "reference_body_map", "REFERENCE_BODIES",
+    "earth_global_map", "moon_global_map", "synthetic_global_map", "render_global_map", "GLOBAL_MAPS",
+]
 
 # 1-degree land mask, 180 rows (latitude 89.5 .. -89.5) x 360 columns
 # (longitude -179.5 .. 179.5), bit-packed, zlib-compressed, base64-encoded.
@@ -222,3 +225,82 @@ def reference_body_map(name: str, grid_size: int = 32) -> np.ndarray:
     if key == "moon":
         return moon_albedo_map(grid_size=grid_size)
     raise ValueError(f"Unknown reference body {name!r}; choose from {sorted(REFERENCE_BODIES)}")
+
+
+# ---------------------------------------------------------------------------
+# Global (latitude x longitude) maps, so a body can be rotated.
+# ---------------------------------------------------------------------------
+
+_GLOBAL_LAT = np.arange(89.5, -90.0, -1.0)    # 180 rows, north first
+_GLOBAL_LON = np.arange(-179.5, 180.0, 1.0)   # 360 columns
+
+
+def earth_global_map() -> np.ndarray:
+    """Cloud-free Earth albedo on a 1-degree latitude/longitude grid (180 x 360)."""
+    lat, lon = np.meshgrid(_GLOBAL_LAT, _GLOBAL_LON, indexing="ij")
+    land = _land_mask()
+    alb = np.where(land, EARTH_ALBEDO["land"], EARTH_ALBEDO["ocean"])
+    desert = np.zeros_like(land)
+    for box in _EARTH_DESERTS:
+        desert |= _in_box(lat, lon, *box)
+    alb = np.where(land & desert, EARTH_ALBEDO["desert"], alb)
+    ice = (land & (lat < -60.0)) | (land & (lat > 60.0) & (lon > -75.0) & (lon < -10.0)) | (land & (lat > 75.0)) | (lat > 82.0)
+    return np.where(ice, EARTH_ALBEDO["ice"], alb)
+
+
+def moon_global_map() -> np.ndarray:
+    """Schematic lunar albedo on a 1-degree grid; maria on the near side, highlands elsewhere."""
+    la, lo = np.meshgrid(_GLOBAL_LAT, _GLOBAL_LON, indexing="ij")
+    alb = np.full(la.shape, MOON_ALBEDO["highland"])
+    for _, clat, clon, a_lat, a_lon in _MOON_MARIA:
+        inside = ((la - clat) / a_lat) ** 2 + ((lo - clon) * np.cos(np.radians(la)) / (a_lon * np.cos(np.radians(clat)))) ** 2 <= 1.0
+        alb[inside] = MOON_ALBEDO["mare"]
+    tycho = ((la + 43.3) ** 2 + ((lo + 11.4) * np.cos(np.radians(la))) ** 2) <= 3.5 ** 2
+    alb[tycho] = MOON_ALBEDO["bright_crater"]
+    return alb
+
+
+def synthetic_global_map(seed: int = 42) -> np.ndarray:
+    """
+    Synthetic ocean world with continents and polar caps on a 1-degree grid.
+
+    Continents are blobs at random positions on the sphere (reproducible for a
+    given seed), so the planet looks different as it rotates.
+    """
+    rng = np.random.RandomState(seed)
+    la, lo = np.meshgrid(np.radians(_GLOBAL_LAT), np.radians(_GLOBAL_LON), indexing="ij")
+    xyz = np.stack([np.cos(la) * np.cos(lo), np.cos(la) * np.sin(lo), np.sin(la)], axis=-1)
+    field = np.zeros(la.shape)
+    for _ in range(14):
+        c_lat = np.arcsin(rng.uniform(-0.8, 0.8))
+        c_lon = rng.uniform(-np.pi, np.pi)
+        c = np.array([np.cos(c_lat) * np.cos(c_lon), np.cos(c_lat) * np.sin(c_lon), np.sin(c_lat)])
+        width = rng.uniform(0.3, 0.55)
+        ang = np.arccos(np.clip(xyz @ c, -1.0, 1.0))
+        field += np.exp(-(ang / width) ** 2)
+    land = field > 0.55
+    alb = np.where(land, 0.30 + 0.06 * np.sin(5 * lo) * np.cos(3 * la), 0.06)
+    alb = np.where(np.abs(np.degrees(la)) > 66.0, 0.80, alb)
+    return np.clip(alb, 0.0, 1.0)
+
+
+GLOBAL_MAPS = {
+    "planet": synthetic_global_map,
+    "earth": earth_global_map,
+    "moon": moon_global_map,
+}
+
+
+def render_global_map(global_map: np.ndarray, grid_size: int = 32, sub_lon_deg: float = 0.0,
+                      sub_lat_deg: float = 0.0, oversample: int = 2) -> np.ndarray:
+    """
+    Orthographic view of a 180 x 360 global map, centred on (sub_lat, sub_lon).
+
+    Same layout as the other maps in this module: ``grid_size x grid_size``,
+    disk radius 0.95, zero outside, row 0 north.
+    """
+    lat, lon, on_disk = _orthographic_latlon(grid_size, sub_lat_deg, sub_lon_deg, oversample)
+    i = np.clip(np.round(89.5 - np.nan_to_num(lat)).astype(int), 0, 179)
+    j = np.clip(np.round(np.nan_to_num(lon) + 179.5).astype(int), 0, 359)
+    fine = np.where(on_disk, global_map[i, j], 0.0)
+    return _downsample(fine, grid_size, oversample)

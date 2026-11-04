@@ -28,8 +28,8 @@ Mi opinión: el ranking actual no sirve para decidir misiones, y el paper no deb
 | H1 · Cáustica | ✅ Corregido | a = 2 J₂ R² sin²β_s / b, que da 287,4 m · √(650 AU/z) para J₂ = 2,25 × 10⁻⁷ (como en Turyshev y Toth). Nuevo `solar_axis_sin2_beta()` con el polo solar de la IAU. Está corregido también en JavaScript y en ManimGL. |
 | M1 · Corona | ✅ Corregido | Forma clásica de Baumbach: 10⁻⁶ [0,0532 r⁻²·⁵ + 1,425 r⁻⁷ + 2,565 r⁻¹⁷]. |
 | C1 · Balance de fotones (SNR) | ✅ Corregido | Nuevo `sgl_sim.radiometry` con desenfoque de fuente extendida, señal del píxel y corona en el anillo. Reproduce el caso de referencia de Toth y Turyshev (30 pc, 1 m, N = 1000: 1,8 × 10⁷ s por píxel frente a 1,33 × 10⁷) y tiene tests. `calculate_snr` y el trade usan este modelo. Pendiente: verificar los demás casos publicados (p. ej. Próxima con 1000 × 1000) contra los papers. |
-| C2 · Reconstrucción de la imagen | ⏳ Pendiente | La PSF todavía se muestrea con píxeles de 1 m. |
-| C3 · Rotación y fases | ⏳ Pendiente | "Basta con una nave" sigue siendo un artefacto. |
+| C2 · Reconstrucción de la imagen | ✅ Corregido | Nuevo `sgl_sim.imaging`: píxeles de tamaño D/N, matriz de desenfoque 1/ρ (K_ii = 4 ln(1+√2)), ruido de fotones del balance de C1 e inversión directa. Validado: el ruido de la reconstrucción coincide con la predicción analítica (√6) dentro del 7 % para N = 16–48. El dashboard (Imaging y Triage) y el sitio lo usan. |
+| C3 · Rotación | ✅ Corregido (sin fases) | El planeta rota durante el barrido, y los sincrónicos rotan una vez por órbita (se eliminó la "inmunidad" de 0,05). Calcula el enjambre mínimo para que el barrido termine en P_rot/(πN) y, si un solo píxel ya tarda más que eso, la apertura mínima (t ∝ d⁻³). Resultado a 32 × 32 con 1 m: Wolf 1061 c necesita 4 telescopios, Próxima b 6, Ross 128 b 9, Tau Ceti e 22, Teegarden b 41, LHS 1140 b 366. TRAPPIST-1 d, e, f y Kepler-186 f no quedan nítidos con 1 m (hacen falta ≥ 1,0–3,7 m). Todavía faltan las fases de iluminación y las nubes. |
 | C4, M2, M3 · Movimiento de la imagen | ⏳ Pendiente | |
 | M4 · Trayectoria | ⏳ Pendiente | |
 | H2 · Puntaje y ranking | ⏳ Pendiente | Depende de C2–C4 y M4. |

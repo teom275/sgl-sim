@@ -711,16 +711,21 @@
     $("o-bl-n").textContent = n;
     try {
       blurRes = await api("/api/swarm_blur_sim", {
-        num_satellites: n, planet_rot_period_hours: +$("bl-rot").value || 24, tidally_locked: $("bl-lock").checked,
-        image_diameter_km: ephem ? ephem.image_diameter_km : 4.2, v_drift_m_s: ephem ? ephem.proper_motion_drift_m_s : 15,
+        num_satellites: n, planet_rot_period_hours: +$("bl-rot").value || 24,
+        distance_source_pc: P.distance_source_pc, z_rec_au: P.z_rec_au, aperture_m: P.aperture_m,
+        radius_earth: ephem && ephem.target_pl_rade ? ephem.target_pl_rade : 1.0,
       });
       const cap = (r, title) => `${title}<span>smear ${num(r.eta_blur, 1)}× · scan ${num(r.scan_time_hours, 1)} h · error ${num(r.rmse, 3)}</span>`;
       $("bl-1").innerHTML = cap(blurRes.single, "One spacecraft");
       $("bl-N").innerHTML = cap(blurRes.swarm, `Swarm of ${n}`);
+      const s1 = blurRes.single;
+      $("bl-need").textContent = s1.sharp_possible
+        ? `${num(s1.per_pixel_s, 0)} s per pixel. A sharp 32 × 32 image needs ${num(s1.telescopes_needed, 0)} telescopes (rotation allows ${num(s1.t_max_blur_hours, 2)} h).`
+        : `${num(s1.per_pixel_s, 0)} s per pixel is already longer than rotation allows (${num(s1.t_max_blur_hours, 2)} h): telescopes of at least ${num(s1.min_aperture_m, 1)} m are needed.`;
       blur1.render(); blurN.render();
     } catch (e) { toast(`Blur simulation failed: ${e.message}`); }
   }, 150);
-  ["bl-n", "bl-rot", "bl-lock"].forEach((id) => $(id).addEventListener("input", runBlur));
+  ["bl-n", "bl-rot"].forEach((id) => $(id).addEventListener("input", runBlur));
 
   async function loadRanking() {
     try {
