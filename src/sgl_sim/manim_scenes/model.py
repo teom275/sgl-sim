@@ -203,7 +203,7 @@ def caustic_scale(j2: float, z_rec_au: float, mass_msun: float = 1.0,
 
     The receiver plane is drawn in these fixed physical units, so changing
     ``J2`` or ``z_rec`` visibly grows/shrinks the caustic under a receiver that
-    stays put.
+    stays put. The size is linear in ``J2`` and falls as ``1/sqrt(z_rec)``.
     """
     kw = dict(mass=mass_msun * M_SUN_SI, star_radius=radius_rsun * R_SUN_SI)
     a = astroid_caustic_semi_width(z_rec=z_rec_au * AU_SI, j2=j2, **kw)["a_caustic_m"]

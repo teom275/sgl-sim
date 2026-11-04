@@ -61,7 +61,7 @@ RANK_FIELDS = (
     "ecliptic_lat_deg", "ecliptic_lon_deg", "telescope_constellation", "telescope_ra_deg", "telescope_dec_deg",
     "image_diameter_km", "v_drift_m_s", "proper_motion_mas_yr",
     "snr_score", "scan_logistics_score", "ecliptic_access_score", "blur_immunity_score",
-    "sgl_score", "tier", "description",
+    "sgl_score", "tier", "description", "radius_measured", "confirmed",
 )
 DEPLOY_FIELDS = (
     "x_au", "y_au", "z_au", "ecliptic_inclination_deg", "light_delay_days", "light_delay_hours",

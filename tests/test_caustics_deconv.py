@@ -36,14 +36,21 @@ from sgl_sim.tradespace import evaluate_tradespace
 
 
 def test_astroid_caustic_semi_width():
-    """Verify astroid caustic semi-width calculation against the formula."""
-    z_rec_m = 650.0 * AU_SI
-    info = astroid_caustic_semi_width(z_rec=z_rec_m, mass=M_SUN_SI, star_radius=R_SUN_SI, j2=J2_SUN)
-    a_m = info["a_caustic_m"]
-    # a_caustic = 2 * R_star * J_2 * (z_rec / b_ring)
-    # 2 * 6.957e8 * 2.2e-7 * (9.724e13 / 7.578e8) ≈ 3.928e7 m
-    assert pytest.approx(3.9276e7, rel=1e-2) == a_m
-    assert a_m > 0.0
+    """Astroid caustic size matches Turyshev & Toth (2021): 287.39 m at 650 AU for J2 = 2.25e-7."""
+    from sgl_sim.caustics import solar_axis_sin2_beta
+
+    ref = astroid_caustic_semi_width(z_rec=650.0 * AU_SI, j2=2.25e-7)["a_caustic_m"]
+    assert ref == pytest.approx(287.39, rel=2e-3)
+    # Shrinks as 1/sqrt(z): smaller further out, not larger.
+    far = astroid_caustic_semi_width(z_rec=4 * 650.0 * AU_SI, j2=2.25e-7)["a_caustic_m"]
+    assert far == pytest.approx(ref / 2.0, rel=1e-9)
+    # Linear in J2 and in sin^2(beta_s).
+    assert astroid_caustic_semi_width(650.0 * AU_SI, j2=4.5e-7)["a_caustic_m"] == pytest.approx(2 * ref)
+    assert astroid_caustic_semi_width(650.0 * AU_SI, j2=2.25e-7, sin2_beta_s=0.25)["a_caustic_m"] == pytest.approx(ref / 4)
+    # Orientation factor: zero along the solar spin axis, one in the solar equator.
+    assert solar_axis_sin2_beta(286.13, 63.87) == pytest.approx(0.0, abs=1e-12)
+    assert solar_axis_sin2_beta(286.13 + 180.0, -63.87) == pytest.approx(0.0, abs=1e-12)
+    assert solar_axis_sin2_beta(286.13, 63.87 - 90.0) == pytest.approx(1.0)
 
 
 def test_parametric_astroid_geometry():
@@ -124,6 +131,10 @@ def test_baumbach_allen_coronal_brightness():
     assert b_1 > 5.0 * b_1_5
     assert b_1 > 20.0 * b_2_5
     assert b_1 > 0.0
+    # Classic Baumbach values (Allen's Astrophysical Quantities).
+    assert b_1 == pytest.approx(4.0432e-6, rel=1e-4)
+    assert baumbach_allen_coronal_brightness(1.09) == pytest.approx(1.415e-6, rel=5e-3)
+    assert b_2_5 == pytest.approx(1e-6 * (0.0532 / 2.5**2.5 + 1.425 / 2.5**7 + 2.565 / 2.5**17))
 
 
 def test_calculate_snr():

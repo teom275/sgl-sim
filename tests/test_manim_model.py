@@ -72,9 +72,9 @@ def test_caustic_view_roundtrip():
 
 def test_caustic_scale_reference_and_scaling():
     assert sglm.caustic_scale(2.2e-7, 650.0) == pytest.approx(1.0)
-    # a ~ J2 * z / sqrt(z) = J2 * sqrt(z)
+    # a = 2 J2 R^2 sin^2(beta) / b with b ~ sqrt(z): linear in J2, ~ 1/sqrt(z)
     assert sglm.caustic_scale(4.4e-7, 650.0) == pytest.approx(2.0)
-    assert sglm.caustic_scale(2.2e-7, 4 * 650.0) == pytest.approx(2.0)
+    assert sglm.caustic_scale(2.2e-7, 4 * 650.0) == pytest.approx(0.5)
 
 
 def test_astroid_curve_is_closed_and_bounded():

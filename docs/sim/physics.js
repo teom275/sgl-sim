@@ -77,10 +77,14 @@
     return 2.404825557695773 / (k * einsteinRing(zAU, mSun).thetaE_rad);
   }
 
-  /** Astroid semi-width a = 2 R J2 z / b_ring (as in sgl_sim.caustics), metres. */
-  function astroidSemiWidth(zAU, j2, mSun = 1, rRsun = 1) {
+  /**
+   * Astroid semi-width a = 2 J2 R^2 sin^2(beta_s) / b_ring (as in sgl_sim.caustics,
+   * after Turyshev & Toth 2021), metres. sin2 = 1 gives the maximum size.
+   */
+  function astroidSemiWidth(zAU, j2, mSun = 1, rRsun = 1, sin2 = 1) {
     const b = einsteinRing(zAU, mSun).bRing_m;
-    return (2 * rRsun * R_SUN * j2 * zAU * AU) / b;
+    const r = rRsun * R_SUN;
+    return (2 * j2 * r * r * sin2) / b;
   }
 
   /** Size of the astroid relative to J2 = 2.2e-7 at 650 AU. */

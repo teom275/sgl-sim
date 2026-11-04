@@ -12,6 +12,7 @@ from astropy import constants as const
 from astropy import units as u
 
 from sgl_sim.relativity import (
+    _to_si_value,
     schwarzschild_radius,
     M_SUN_SI,
     R_SUN_SI,
@@ -27,26 +28,31 @@ from sgl_sim.optics import (
 
 def baumbach_allen_coronal_brightness(r_sun: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
     """
-    Compute the solar K-corona surface brightness relative to mean solar disk brightness B_sun
-    using the classical Baumbach-Allen model:
+    Solar K-corona surface brightness relative to the mean solar disk, Baumbach (1937)
+    as given in Allen's Astrophysical Quantities:
 
-        B_cor(r) / B_sun = (2.56e-6 / r^6) + (1.42e-6 / r^2.5) + (2.26e-8 / r^1.5)
+        B_cor(r) / B_sun = 1e-6 * (0.0532 / r^2.5 + 1.425 / r^7 + 2.565 / r^17)
 
-    where r is the heliocentric radial distance in units of solar radii (r >= 1.0).
+    where r is the heliocentric distance in solar radii (r >= 1). At the Einstein
+    ring of a receiver at 650 AU (r = 1.09) this is 1.4e-6.
+
+    Earlier versions paired these coefficients with the wrong exponents
+    (2.56/r^6 + 1.42/r^2.5 + 0.0226/r^1.5), overestimating the outer corona by up
+    to ~24x at 3 R_sun; see docs/auditoria-fisica.md (finding M1). The F-corona is
+    not included, so this is a lower bound on the background.
 
     Parameters
     ----------
     r_sun : float or np.ndarray
-        Radial impact parameter / coronal distance in solar radii (b / R_sun).
+        Radial distance in solar radii (b / R_sun).
 
     Returns
     -------
     float or np.ndarray
-        Coronal brightness relative to mean solar disk (dimensionless ratio).
+        Coronal brightness relative to the mean solar disk (dimensionless).
     """
     r = np.asarray(r_sun, dtype=float)
-    # Baumbach-Allen empirical coefficients
-    b_cor = (2.56e-6 / (r**6)) + (1.42e-6 / (r**2.5)) + (2.26e-8 / (r**1.5))
+    b_cor = 1.0e-6 * (0.0532 / r**2.5 + 1.425 / r**7 + 2.565 / r**17)
     if np.ndim(b_cor) == 0:
         return float(b_cor)
     return b_cor
@@ -60,111 +66,80 @@ def calculate_snr(
     exoplanet_radius: Union[float, u.Quantity] = 6.371e6,
     wavelength: Union[float, u.Quantity] = 1.0e-6,
     mass: Union[float, u.Quantity] = M_SUN_SI,
-    coronagraph_suppression: float = 1.0e-6,
-    optical_throughput: float = 0.35,
+    coronagraph_suppression: Optional[float] = None,
+    optical_throughput: float = 1.0,
+    n_pixels: int = 32,
+    insolation_earth: float = 1.0,
+    geometric_albedo: float = 0.367,
 ) -> Dict[str, float]:
     """
-    Calculate the per-pixel Signal-to-Noise Ratio (SNR) for an exoplanet surface element
-    observed through the Gravitational Lens.
+    Deconvolved per-pixel SNR for an N x N image of an exoplanet through the SGL.
+
+    Wraps :func:`sgl_sim.radiometry.sgl_photon_budget`. That model accounts for
+    the direct pixel signal, the blur from the rest of the disk, and the solar
+    corona inside the Einstein-ring annulus. The earlier version of this function
+    used unit-less constants and a 1e-6 "coronagraph" factor on the corona, and
+    overestimated the SNR by ~1e10 (docs/auditoria-fisica.md, finding C1).
 
     Parameters
     ----------
-    z_rec : float or astropy.units.Quantity
-        Receiver distance in meters (or AU if Quantity).
-    aperture_m : float or astropy.units.Quantity, optional
-        Telescope primary mirror diameter in meters (default: 1.0 m).
-    integration_time_s : float or astropy.units.Quantity, optional
-        Integration time per pixel in seconds (default: 1 day = 86400 s).
-    distance_source : float or astropy.units.Quantity, optional
-        Distance to exoplanet host system in meters (default: 1.3 pc ≈ Proxima Cen).
-    exoplanet_radius : float or astropy.units.Quantity, optional
-        Radius of exoplanet in meters (default: Earth radius = 6371 km).
-    wavelength : float or astropy.units.Quantity, optional
-        Observation wavelength in meters.
-    mass : float or astropy.units.Quantity, optional
-        Lens mass in kg.
+    z_rec : float or Quantity
+        Receiver distance (m if float).
+    aperture_m : float or Quantity
+        Telescope diameter (m).
+    integration_time_s : float or Quantity
+        Integration time per pixel (s).
+    distance_source : float or Quantity
+        Distance to the exoplanet (m if float).
+    exoplanet_radius : float or Quantity
+        Planet radius (m if float).
+    wavelength : float or Quantity
+        Kept for compatibility. The band is 0.4-1.0 um; for the PSF use
+        :func:`sgl_sim.optics.psf_intensity`.
+    mass : float or Quantity
+        Lens mass (kg if float).
     coronagraph_suppression : float, optional
-        Effective coronagraph / occulter suppression factor of solar corona.
-    optical_throughput : float, optional
-        End-to-end instrument throughput efficiency.
+        Ignored. The corona overlaps the Einstein ring and cannot be suppressed.
+    optical_throughput : float
+        End-to-end efficiency (default 1, ideal).
+    n_pixels : int
+        Image resolution N (default 32, matching the imaging pipeline).
+    insolation_earth : float
+        Stellar flux at the planet in solar-constant units.
+    geometric_albedo : float
+        Planet geometric albedo.
 
     Returns
     -------
     dict
-        Dictionary containing 'snr', 'signal_photons', 'coronal_photons',
-        'noise_photons', and 'r_sun_impact'.
+        'snr', 'signal_photons' (pixel term), 'blur_photons', 'coronal_photons',
+        'noise_photons', 'r_sun_impact', 'image_diameter_m' and 'n_pixels',
+        all for the given integration time.
     """
-    if isinstance(z_rec, u.Quantity):
-        z_m = z_rec.to(u.m).value
-    else:
-        z_m = float(z_rec)
+    from sgl_sim.radiometry import sgl_photon_budget
 
-    if isinstance(aperture_m, u.Quantity):
-        d_tel = aperture_m.to(u.m).value
-    else:
-        d_tel = float(aperture_m)
-
-    if isinstance(integration_time_s, u.Quantity):
-        t_int = integration_time_s.to(u.s).value
-    else:
-        t_int = float(integration_time_s)
-
-    if isinstance(distance_source, u.Quantity):
-        d_src = distance_source.to(u.m).value
-    else:
-        d_src = float(distance_source)
-
-    if isinstance(exoplanet_radius, u.Quantity):
-        r_exo = exoplanet_radius.to(u.m).value
-    else:
-        r_exo = float(exoplanet_radius)
-
-    if isinstance(wavelength, u.Quantity):
-        lam = wavelength.to(u.m).value
-    else:
-        lam = float(wavelength)
-
-    rs = schwarzschild_radius(mass)
-    b_ring = np.sqrt(2.0 * rs * z_m)
-    r_sun_impact = b_ring / R_SUN_SI
-
-    # Solar irradiance at 1 AU (approx 1361 W/m^2, ~ 1.5e21 photons/s/m^2)
-    # Earth-like exoplanet at d_src reflected flux
-    tel_area = np.pi * (d_tel / 2.0) ** 2
-    mu_eff = peak_magnification(wavelength=lam, mass=mass) * 1.5e-3
-
-    # Scaled photon flux from exoplanet pixel (finite disk averaged)
-    # Turyshev NIAC Phase III: effective magnification over resolved patch is ~1e6
-    mu_eff = (4.0 * np.pi * rs / lam)  # effective disk-averaged geometric factor
-    photon_flux_base = (
-        1.5e-3
-        * (1.3 * PC_SI / d_src) ** 2
-        * (r_exo / 6.371e6) ** 2
-        * (1.0e-6 / lam)
+    t_int = _to_si_value(integration_time_s, u.s)
+    bud = sgl_photon_budget(
+        z_rec=z_rec,
+        aperture_m=aperture_m,
+        distance_source=distance_source,
+        planet_radius=exoplanet_radius,
+        n_pixels=n_pixels,
+        insolation_earth=insolation_earth,
+        geometric_albedo=geometric_albedo,
+        throughput=optical_throughput,
+        mass=mass,
     )
-    signal_photons = photon_flux_base * mu_eff * tel_area * t_int * optical_throughput
-
-    # Coronal background photon flux per pixel
-    cor_ratio = baumbach_allen_coronal_brightness(r_sun_impact)
-    # Solar flux at 650 AU ~ 3.2 W/m^2; coronagraph suppresses by factor ~ 1e-6
-    coronal_flux = 8.5e6 * cor_ratio * coronagraph_suppression * (1.0e-6 / lam)
-    coronal_photons = coronal_flux * tel_area * t_int * optical_throughput
-
-    # Detector read/dark noise floor (e.g. 5 e- RMS per pixel)
-    read_noise_sq = 25.0
-
-    # Total noise variance (Poisson shot noise of signal + corona + read noise)
-    noise_variance = signal_photons + coronal_photons + read_noise_sq
-    noise_photons = np.sqrt(max(noise_variance, 1.0))
-
-    snr = signal_photons / noise_photons
-
+    noise = np.sqrt((bud["blur"] + bud["corona"]) * t_int)
     return {
-        "snr": float(max(snr, 0.1)),
-        "signal_photons": float(signal_photons),
-        "coronal_photons": float(coronal_photons),
-        "noise_photons": float(noise_photons),
-        "r_sun_impact": float(r_sun_impact),
+        "snr": float(bud["snr_per_sqrt_s"] * np.sqrt(t_int)),
+        "signal_photons": float(bud["pixel"] * t_int),
+        "blur_photons": float(bud["blur"] * t_int),
+        "coronal_photons": float(bud["corona"] * t_int),
+        "noise_photons": float(noise),
+        "r_sun_impact": float(bud["r_ring_rsun"]),
+        "image_diameter_m": float(bud["image_diameter_m"]),
+        "n_pixels": int(bud["n_pixels"]),
     }
 
 

@@ -19,14 +19,16 @@
 
 ![sgl-sim web simulator](docs/assets/web_simulator.png)
 
+> **Model under review.** A [physics audit](docs/auditoria-fisica.md) (in Spanish) checked sgl-sim against the SGL literature. The caustic size, corona, proper motion, catalogue data and the photon budget are fixed. The image reconstruction, planet rotation, image motion and the target ranking are still being reworked, so treat the imaging, blur and triage results as provisional.
+
 ---
 
 ## What it models
 
 - **Relativity:** Schwarzschild radius, photon sphere and critical impact parameter ($b_c = \tfrac{3\sqrt{3}}{2} R_s$), weak-field deflection, axis crossing $z(b) = b^2/2R_s$, and RK45 integration of strong-field null geodesics.
 - **Wave optics:** minimum focal distance ($z_{\min} \approx 547.8$ AU for the Sun), Einstein ring, peak gain $\mu_{\max} = 4\pi^2 R_s/\lambda \sim 10^{11}$, and the Bessel $J_0^2$ point-spread function, whose core is about 5 cm wide at 650 AU.
-- **Oblateness caustics ($J_2$):** astroid caustic in the receiver plane and a solver for the quadrupole lens equation. It gives four images (Einstein cross) inside the astroid and two outside.
-- **Imaging:** Baumbach–Allen coronal background, per-pixel SNR budget, and 2D Wiener deconvolution of a synthetic exoplanet albedo map.
+- **Oblateness caustics ($J_2$):** astroid caustic in the receiver plane, a few hundred metres across for the Sun and scaled by the orientation of the solar spin axis ($\sin^2\beta_s$), and a solver for the quadrupole lens equation. It gives four images (Einstein cross) inside the astroid and two outside.
+- **Imaging:** photon budget of an extended source through the lens (direct signal, blur from the whole disk, Baumbach K-corona in the Einstein-ring annulus; `sgl_sim.radiometry`), integration time for a target SNR, and 2D Wiener deconvolution of a synthetic exoplanet albedo map.
 - **Orbits and station keeping:** focal-line hover Δv, scan Δv, image-cylinder size, and black-hole ISCO.
 - **Targets:** resolver for the NASA Exoplanet Archive (TAP, with a curated offline catalogue of 15 targets). It returns the antipodal telescope pointing, 3D heliocentric position, ecliptic inclination, light delay and proper-motion drift.
 - **Triage:** 0–100 feasibility score and mission tier, all-sky efficiency map, multi-target co-alignment check, and rotational motion blur for one spacecraft vs. a swarm.

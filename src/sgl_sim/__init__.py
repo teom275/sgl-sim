@@ -64,6 +64,11 @@ from sgl_sim.triage import (
     check_mission_coalignment,
     CATALOG_12_CANDIDATES,
 )
+from sgl_sim.radiometry import (
+    sgl_photon_budget,
+    integration_time_for_snr,
+    solar_photon_flux,
+)
 from sgl_sim.reference_bodies import (
     earth_albedo_map,
     moon_albedo_map,
@@ -118,6 +123,9 @@ __all__ = [
     "generate_sky_efficiency_map",
     "check_mission_coalignment",
     "CATALOG_12_CANDIDATES",
+    "sgl_photon_budget",
+    "integration_time_for_snr",
+    "solar_photon_flux",
     "earth_albedo_map",
     "moon_albedo_map",
     "reference_body_map",
