@@ -565,9 +565,8 @@ def compute_sgl_deployment_vector(
     # 8. Lateral Proper-Motion Focal Line Drift
     # As the host star traverses the sky at proper motion rate mu (mas/yr),
     # the focal line sweeps laterally across space: v_drift = z_rec * mu_rad_s
-    # pmra is mu_alpha* (already includes cos(dec)), as in the NASA Exoplanet
-    # Archive and as passed to astropy above, so it must not be multiplied by
-    # cos(dec) again (see docs/auditoria-fisica.md, finding H4).
+    # pmra is mu_alpha* (already includes cos(dec)), as in Gaia and the NASA
+    # Exoplanet Archive, so it must not be multiplied by cos(dec) again.
     pm_total_mas_yr = float(np.hypot(pmra, pmdec))
     # Convert mas/yr to rad/s: 1 mas = pi / (180 * 3600 * 1000) rad, 1 yr = 365.25 * 86400 s
     mas_to_rad = np.pi / (180.0 * 3600.0 * 1000.0)

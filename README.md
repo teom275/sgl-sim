@@ -114,6 +114,42 @@ print(solve_quadrupole_images(x0=0 * u.m, y0=0 * u.m, z_rec=650 * u.AU)["num_ima
 
 Functions accept SI floats or `astropy.units` quantities and return dictionaries of named results. The full walkthrough is in **[`docs/python-api.md`](docs/python-api.md)**. It covers deflection, the PSF, caustics, deconvolution, FITS export, target ephemerides and triage, plus a table of every module.
 
+### 8. Heliocentric Solar Oberth Escape Trajectories & Swarm Formation Flying
+```python
+from astropy import units as u
+from sgl_sim import solar_oberth_trajectory, generate_swarm_formation
+
+# 1. High-speed heliocentric Solar Oberth escape trajectory
+# Perihelion at 0.05 AU (~10.8 R_sun) with impulsive Delta-V burn of 5.0 km/s
+oberth = solar_oberth_trajectory(
+    r_perihelion=0.05 * u.AU,
+    delta_v_burn=5.0 * u.km / u.s,
+    target_z_rec=650.0 * u.AU,
+)
+print(f"Perihelion Pre-Burn Velocity: {oberth['v_perihelion_km_s']:.1f} km/s")
+print(f"Hyperbolic Excess Velocity: v_inf = {oberth['v_inf_km_s']:.1f} km/s ({oberth['v_inf_au_yr']:.2f} AU/yr)")
+print(f"Cruise Duration to 650 AU: {oberth['cruise_time_years']:.1f} years | Oberth Amplification: x{oberth['amplification_factor']:.1f}")
+
+# 2. Transverse focal-plane satellite swarm formation geometry (e.g. 7-craft hexagonal array)
+swarm = generate_swarm_formation(pattern="hexagonal", num_satellites=7, radius_km=10.0 * u.km)
+print(f"Formation Pattern: {swarm['pattern']} with {swarm['num_satellites']} spacecraft")
+print(f"Max Baseline: {swarm['max_baseline_km']:.2f} km | Mean Inter-craft Separation: {swarm['mean_separation_km']:.2f} km")
+```
+
+---
+
+## Scientific Publication Figures & Reproducibility
+
+The repository includes a standalone script to generate high-resolution (300 DPI) figures for the JOSS manuscript:
+
+```bash
+python scripts/generate_paper_figures.py
+```
+
+Generated outputs in `paper/figures/`:
+- **Figure 1 (`figure1_swarm_patterns.png`):** SGL satellite swarm formation architectures in the outer Solar System ($650\text{ AU}$), image-cylinder scanning patterns, rotational motion-blur suppression ($t_{\text{scan}}$ vs $N_{\text{sat}}$), 2D exoplanet surface albedo reconstructions, and annual propulsion $\Delta v$ budgets.
+- **Figure 2 (`figure2_exoplanet_trajectories.png`):** 3D heliocentric escape corridors, all-sky Solar Lens observation efficiency projection ($\cos^2\beta_{\text{ecl}}$), TRAPPIST-1 multi-planet co-alignment corridor ($\Delta\theta \le 3.0^\circ$), and candidate tradespace ($D_{\text{img}}$ vs $v_{\text{drift}}$).
+
 ---
 
 ## Web simulator
@@ -233,6 +269,12 @@ It also covers:
 - the Earth/Moon reference maps
 - the ManimGL scene geometry
 - that the web simulator's mission data matches the Python API
+
+---
+
+## Contributing
+
+Contributions, bug reports, and pull requests are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for code standards, testing guidelines, and submission workflow.
 
 ---
 

@@ -46,6 +46,8 @@ from sgl_sim.orbital import (
     check_isco,
     image_cylinder_diameter,
     station_keeping_delta_v,
+    solar_oberth_trajectory,
+    generate_swarm_formation,
 )
 from sgl_sim.tradespace import (
     evaluate_tradespace,
@@ -112,6 +114,8 @@ __all__ = [
     "check_isco",
     "image_cylinder_diameter",
     "station_keeping_delta_v",
+    "solar_oberth_trajectory",
+    "generate_swarm_formation",
     "evaluate_tradespace",
     "resolve_exoplanet",
     "compute_sgl_deployment_vector",

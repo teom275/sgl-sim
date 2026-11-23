@@ -31,6 +31,8 @@ from sgl_sim.orbital import (
     check_isco,
     image_cylinder_diameter,
     station_keeping_delta_v,
+    solar_oberth_trajectory,
+    generate_swarm_formation,
 )
 from sgl_sim.tradespace import evaluate_tradespace
 
@@ -196,6 +198,39 @@ def test_orbital_mechanics_and_isco():
     # Annual station-keeping delta-V
     sk = station_keeping_delta_v(z_rec=z_rec_m, mass=M_SUN_SI)
     assert 0.1 < sk["delta_v_hover_annual_m_s"] < 2.0
+
+    # Solar Oberth escape trajectory
+    oberth = solar_oberth_trajectory(
+        r_perihelion=0.05 * AU_SI,
+        delta_v_burn=5000.0,
+        target_z_rec=650.0 * AU_SI,
+    )
+    assert 180.0 < oberth["v_perihelion_km_s"] < 200.0
+    assert 40.0 < oberth["v_inf_km_s"] < 50.0
+    assert 8.0 < oberth["v_inf_au_yr"] < 11.0
+    assert oberth["amplification_factor"] > 8.0
+    assert 50.0 < oberth["cruise_time_years"] < 80.0
+
+    # Quantity input equivalence
+    oberth_q = solar_oberth_trajectory(
+        r_perihelion=0.05 * u.AU,
+        delta_v_burn=5.0 * u.km / u.s,
+        target_z_rec=650.0 * u.AU,
+    )
+    assert np.isclose(oberth["v_inf_km_s"], oberth_q["v_inf_km_s"])
+
+    # Swarm formation generation
+    for pat in ["concentric", "hexagonal", "spiral", "linear_rake"]:
+        swarm = generate_swarm_formation(pattern=pat, num_satellites=7, radius_km=10.0)
+        assert swarm["num_satellites"] == 7
+        assert len(swarm["positions"]) == 7
+        assert swarm["max_baseline_km"] > 0.0
+        assert swarm["mean_separation_km"] > 0.0
+
+    # Single satellite edge case
+    swarm_single = generate_swarm_formation(pattern="concentric", num_satellites=1)
+    assert swarm_single["num_satellites"] == 1
+    assert swarm_single["positions"][0]["x_km"] == 0.0
 
 
 def test_evaluate_tradespace_grid():

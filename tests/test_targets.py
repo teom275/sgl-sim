@@ -156,7 +156,8 @@ def test_space_motion_propagation_to_arrival_year_2048():
     assert 0.02 < ra_diff < 0.20
 
     # Lateral drift velocity at 650 AU
-    assert res_2048["proper_motion_drift_m_s"] > 10.0
+    assert 50.0 < res_2048["proper_motion_drift_m_s"] < 65.0
+    assert 3800.0 < res_2048["target_pm_total_mas_yr"] < 3900.0
 
 
 def test_quantity_input_equivalence():

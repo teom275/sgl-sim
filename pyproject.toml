@@ -45,6 +45,7 @@ dependencies = [
 test = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
+    "matplotlib>=3.5.0",
 ]
 # Production web server for the hosted dashboard (see render.yaml).
 server = [
