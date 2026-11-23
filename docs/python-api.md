@@ -15,6 +15,7 @@ The examples below run in order as a single script: later examples reuse variabl
 - [8. What would the Earth look like? Reference bodies](#8-what-would-the-earth-look-like-reference-bodies)
 - [9. How long does an image take? Photon budget](#9-how-long-does-an-image-take-photon-budget)
 - [10. One telescope or a swarm? Physical image simulation](#10-one-telescope-or-a-swarm-physical-image-simulation)
+- [11. Heliocentric Solar Oberth escape & swarm formations](#11-heliocentric-solar-oberth-escape--swarm-formations)
 
 ## Modules at a glance
 
@@ -24,7 +25,7 @@ The examples below run in order as a single script: later examples reuse variabl
 | `sgl_sim.optics` | Focal line, Einstein ring, wave-optics PSF | `minimum_focal_distance`, `einstein_ring_properties`, `peak_magnification`, `psf_intensity`, `generate_2d_psf` |
 | `sgl_sim.caustics` | J2 quadrupole astroid caustic and image solver | `astroid_caustic_semi_width`, `parametric_astroid`, `check_caustic_regime`, `solve_quadrupole_images`, `generate_caustic_map_2d` |
 | `sgl_sim.deconvolution` | Coronal background, SNR budget, Wiener deconvolution | `baumbach_allen_coronal_brightness`, `calculate_snr`, `generate_exoplanet_map`, `wiener_deconvolution`, `compute_rmse`, `compute_ssim` |
-| `sgl_sim.orbital` | Station keeping, image cylinder, ISCO | `orbital_velocity`, `orbital_period`, `image_cylinder_diameter`, `station_keeping_delta_v`, `isco_radius`, `check_isco` |
+| `sgl_sim.orbital` | Station keeping, image cylinder, Solar Oberth escape, swarm formations, ISCO | `solar_oberth_trajectory`, `generate_swarm_formation`, `image_cylinder_diameter`, `station_keeping_delta_v`, `orbital_velocity`, `isco_radius` |
 | `sgl_sim.tradespace` | Distance × aperture SNR trade | `evaluate_tradespace` |
 | `sgl_sim.targets` | Exoplanet resolver and deployment geometry | `resolve_exoplanet`, `compute_sgl_deployment_vector`, `list_curated_targets`, `TOP_15_SGL_TARGETS` |
 | `sgl_sim.triage` | Feasibility scoring, sky map, swarm motion blur | `score_exoplanet_candidate`, `get_ranked_catalog`, `generate_sky_efficiency_map`, `check_mission_coalignment`, `compute_motion_blur`, `CATALOG_12_CANDIDATES` |
@@ -241,4 +242,23 @@ swarm = simulate_sgl_observation("earth", n_telescopes=one["telescopes_needed"],
 print(f"swarm of {swarm['n_telescopes']}: {swarm['scan_hours']:.1f} h scan, SSIM {swarm['ssim']:.2f}")
 # 70 s/pixel, one telescope: 14.3 h scan, smeared 5.4x, SSIM 0.79; needs 6 telescopes
 # swarm of 6: 2.4 h scan, SSIM 0.91
+```
+
+## 11. Heliocentric Solar Oberth escape & swarm formations
+```python
+from astropy import units as u
+from sgl_sim import solar_oberth_trajectory, generate_swarm_formation
+
+# 1. Hyperbolic Solar Oberth escape corridor to 650 AU
+oberth = solar_oberth_trajectory(
+    r_perihelion=0.05 * u.AU,
+    delta_v_burn=5.0 * u.km / u.s,
+    target_z_rec=650.0 * u.AU,
+)
+print(f"Hyperbolic excess: {oberth['v_inf_km_s']:.1f} km/s ({oberth['v_inf_au_yr']:.2f} AU/yr)")
+print(f"Cruise to 650 AU: {oberth['cruise_time_years']:.1f} years | Amplification: x{oberth['amplification_factor']:.1f}")
+
+# 2. Transverse focal-plane satellite swarm formation geometry
+swarm = generate_swarm_formation(pattern="hexagonal", num_satellites=7, radius_km=10.0 * u.km)
+print(f"Formation: {swarm['pattern']} ({swarm['num_satellites']} craft), max baseline: {swarm['max_baseline_km']:.2f} km")
 ```

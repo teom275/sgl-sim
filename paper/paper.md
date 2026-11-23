@@ -130,10 +130,14 @@ Across the transverse image cylinder ($D_{\text{img}} \approx 3 - 32\text{ km}$)
 - `sgl_sim.optics`: Focal line geometry, wave-optics Bessel PSF synthesis, and Einstein ring properties.
 - `sgl_sim.caustics`: Analytical and numerical solutions to the $J_2$ quadrupolar lens equation, astroid geometry, and azimuthal ring intensity profiles.
 - `sgl_sim.deconvolution`: Baumbach-Allen coronal noise models, SNR budgets, synthetic exoplanet generation, and 2D Wiener filtering.
+- `sgl_sim.radiometry`: Extended-source SGL photon budget, Baumbach-Allen corona photon noise, direct and blur signal flux decomposition.
+- `sgl_sim.imaging`: Physical forward-model simulator of rotating exoplanets scanned by telescope swarms, including blur matrices, noise injection, and surface recovery.
+- `sgl_sim.reference_bodies`: Realistic Earth and Moon global albedo maps for ground-truth image reconstruction benchmarks.
 - `sgl_sim.orbital`: Keplerian and hovering focal-line orbital mechanics, Solar Oberth escape trajectories, swarm formation generators, image cylinder geometry, and station-keeping $\Delta v$.
 - `sgl_sim.tradespace`: Grid evaluators across $(z_{\text{rec}}, D_{\text{tel}})$ mission parameters.
 - `sgl_sim.targets`: NASA Exoplanet Archive and Astropy coordinate resolver, celestial antipodes, 3D heliocentric positioning, and proper-motion focal line drift.
 - `sgl_sim.triage`: Universal SGL feasibility classifier, all-sky efficiency mapping ($72 \times 36$), mission co-alignment analyzer, and single-craft vs. swarm rotational blur modeling.
+- `sgl_sim.manim_scenes`: Interactive GPU-accelerated 3Blue1Brown ManimGL scenes for visualizing the focal line, Einstein cross transitions, and wave PSF profiles.
 - `sgl_sim.exporters`: Multi-extension NASA FITS (`astropy.io.fits`), CSV, and JSON exporters.
 - `sgl_sim.web`: A synchronized interactive scientific dashboard powered by Flask, vanilla HTML5/Canvas, and responsive CSS.
 
