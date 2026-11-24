@@ -15,7 +15,7 @@ authors:
 affiliations:
   - name: Independent Researcher
     index: 1
-date: 18 October 2026
+date: 23 November 2026
 bibliography: paper.bib
 ---
 
