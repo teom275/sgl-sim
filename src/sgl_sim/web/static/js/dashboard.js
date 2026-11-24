@@ -751,6 +751,233 @@
     } catch (e) { toast(`Ranking failed: ${e.message}`); }
   }
 
+  // ------------------------------------------------------------------ astrodynamics (Oberth & Swarm)
+  let oberthData = null;
+  const oberthScene = scene($("cv-oberth"), (ctx, w, h) => {
+    if (!oberthData) return;
+    const padL = 40, padR = 30, padT = 30, padB = 40;
+    const gw = w - padL - padR, gh = h - padT - padB;
+    const cy = padT + gh / 2;
+
+    // Draw background guide grid
+    ctx.strokeStyle = "rgba(255,255,255,0.05)";
+    ctx.lineWidth = 1;
+    for (let f = 0.25; f <= 1.0; f += 0.25) {
+      const gx = padL + gw * f;
+      ctx.beginPath(); ctx.moveTo(gx, padT); ctx.lineTo(gx, padT + gh); ctx.stroke();
+    }
+
+    // Solar system scale along x-axis (root power scale for wide dynamic range from 0.05 AU to 650 AU)
+    const zTarget = oberthData.target_z_rec_au || 650.0;
+    const xOfAU = (au) => padL + gw * Math.pow(Math.max(0, au) / zTarget, 0.35);
+
+    const xSun = padL;
+    const xPeri = xOfAU(oberthData.r_perihelion_au || 0.05);
+    const xEarth = xOfAU(1.0);
+    const xJup = xOfAU(5.2);
+    const xZmin = xOfAU(547.8);
+    const xZtarget = padL + gw;
+
+    // Minimum focal sphere zone (z >= 547.8 AU)
+    ctx.fillStyle = "rgba(169,210,255,0.06)";
+    ctx.fillRect(xZmin, padT, Math.max(0, gw - (xZmin - padL)), gh);
+    ctx.strokeStyle = "rgba(169,210,255,0.25)";
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath(); ctx.moveTo(xZmin, padT); ctx.lineTo(xZmin, padT + gh); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Distance milestone labels
+    ctx.font = '10px "IBM Plex Sans", system-ui, sans-serif';
+    ctx.fillStyle = C.faint;
+    ctx.fillText("1 AU (Earth)", xEarth - 25, padT + gh + 14);
+    ctx.fillText("5.2 AU (Jup)", xJup - 25, padT + gh + 14);
+    ctx.fillText("548 AU (z_min)", xZmin - 30, padT + 12);
+    ctx.fillText(`${num(zTarget, 0)} AU (Focal)`, xZtarget - 35, padT + gh + 14);
+
+    // Planet milestone ticks
+    [xEarth, xJup].forEach((x) => {
+      ctx.strokeStyle = "rgba(255,255,255,0.15)";
+      ctx.beginPath(); ctx.moveTo(x, cy - 8); ctx.lineTo(x, cy + 8); ctx.stroke();
+    });
+
+    // Inbound elliptic trajectory to perihelion (dashed arc)
+    ctx.strokeStyle = "rgba(255,194,75,0.4)";
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    ctx.moveTo(xEarth, cy - gh * 0.38);
+    ctx.quadraticCurveTo(xPeri, cy - gh * 0.35, xPeri, cy);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Outbound hyperbolic escape corridor (solid glowing trajectory)
+    ctx.strokeStyle = "rgba(169,210,255,0.85)";
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(xPeri, cy);
+    ctx.lineTo(xZtarget, cy);
+    ctx.stroke();
+
+    // Impulsive burn marker at Perihelion
+    glow(ctx, xPeri, cy, 14, "rgba(255,100,50,0.6)");
+    ctx.fillStyle = "#ff6432";
+    ctx.beginPath(); ctx.arc(xPeri, cy, 4, 0, 2 * Math.PI); ctx.fill();
+
+    // Δv Vector arrow at Perihelion
+    ctx.strokeStyle = "#ff9050";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(xPeri, cy);
+    ctx.lineTo(xPeri + 18, cy);
+    ctx.lineTo(xPeri + 14, cy - 4);
+    ctx.moveTo(xPeri + 18, cy);
+    ctx.lineTo(xPeri + 14, cy + 4);
+    ctx.stroke();
+
+    // Spacecraft at target distance
+    glow(ctx, xZtarget, cy, 12, "rgba(169,210,255,0.7)");
+    ctx.fillStyle = C.ice;
+    ctx.beginPath(); ctx.arc(xZtarget, cy, 4.5, 0, 2 * Math.PI); ctx.fill();
+
+    // Glowing Sun at origin
+    glow(ctx, xSun, cy, 22, "rgba(255,194,75,0.5)");
+    ctx.fillStyle = "#ffc24b";
+    ctx.beginPath(); ctx.arc(xSun, cy, 8, 0, 2 * Math.PI); ctx.fill();
+
+    // Key annotations
+    ctx.fillStyle = C.ink;
+    ctx.font = FONT;
+    ctx.fillText("Sun", xSun - 10, cy - 14);
+    ctx.fillStyle = "#ff9050";
+    ctx.fillText(`Δv = ${num(oberthData.delta_v_burn_km_s, 1)} km/s`, xPeri - 15, cy - 14);
+    ctx.fillStyle = C.ice;
+    ctx.fillText(`v_∞ = ${num(oberthData.v_inf_km_s, 1)} km/s (${num(oberthData.v_inf_au_yr, 1)} AU/yr)`, xZtarget - 130, cy - 14);
+  });
+
+  const runOberth = debounce(async () => {
+    const rPeriAu = +$("ob-peri").value;
+    const dvKmS = +$("ob-dv").value;
+    const zAu = +$("ob-z").value;
+    $("o-ob-peri").textContent = `${rPeriAu.toFixed(3)} AU (${(rPeriAu * 215.03).toFixed(1)} R☉)`;
+    $("o-ob-dv").textContent = `${dvKmS.toFixed(1)} km/s`;
+    $("o-ob-z").textContent = `${zAu.toFixed(0)} AU`;
+    try {
+      oberthData = await api("/api/solar_oberth", {
+        r_perihelion_au: rPeriAu,
+        delta_v_burn_km_s: dvKmS,
+        target_z_rec_au: zAu,
+        mass_solar: P.mass_solar || 1.0,
+      });
+      $("ob-vp").textContent = `${num(oberthData.v_perihelion_km_s, 1)} km/s`;
+      $("ob-vpost").textContent = `${num(oberthData.v_post_burn_km_s, 1)} km/s`;
+      $("ob-vinf").textContent = `${num(oberthData.v_inf_km_s, 1)} km/s`;
+      $("ob-vau").textContent = `${num(oberthData.v_inf_au_yr, 2)} AU/year`;
+      $("ob-time").textContent = `${num(oberthData.cruise_time_years, 1)} years`;
+      $("ob-amp").textContent = `×${num(oberthData.amplification_factor, 1)} kinetic boost`;
+      oberthScene.render();
+    } catch (e) { toast(`Solar Oberth calculation failed: ${e.message}`); }
+  }, 100);
+
+  ["ob-peri", "ob-dv", "ob-z"].forEach((id) => $(id).addEventListener("input", runOberth));
+
+  let swarmData = null;
+  const swarmScene = scene($("cv-swarm-formation"), (ctx, w, h) => {
+    if (!swarmData) return;
+    const cx = w / 2, cy = h / 2;
+    const Rpx = Math.min(w, h) * 0.40;
+    const Rkm = swarmData.radius_km || 10.0;
+    const scale = Rpx / Rkm;
+
+    // Image cylinder boundary (D_img = 2 * R)
+    ctx.strokeStyle = "rgba(169,210,255,0.4)";
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([5, 5]);
+    ctx.beginPath(); ctx.arc(cx, cy, Rpx, 0, 2 * Math.PI); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Range rings
+    [0.25, 0.5, 0.75].forEach((f) => {
+      ctx.strokeStyle = "rgba(255,255,255,0.06)";
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(cx, cy, Rpx * f, 0, 2 * Math.PI); ctx.stroke();
+    });
+
+    // Coordinate crosshair axes
+    ctx.strokeStyle = "rgba(255,255,255,0.08)";
+    ctx.beginPath();
+    ctx.moveTo(cx - Rpx * 1.1, cy); ctx.lineTo(cx + Rpx * 1.1, cy);
+    ctx.moveTo(cx, cy - Rpx * 1.1); ctx.lineTo(cx + Rpx * 1.1);
+    ctx.stroke();
+
+    // Scale label
+    ctx.font = '10px "IBM Plex Sans", system-ui, sans-serif';
+    ctx.fillStyle = C.faint;
+    ctx.fillText(`Cylinder R = ${num(Rkm, 1)} km`, cx + 6, cy - Rpx - 6);
+
+    const positions = swarmData.positions || [];
+
+    // Inter-spacecraft baselines mesh
+    ctx.strokeStyle = "rgba(169,210,255,0.18)";
+    ctx.lineWidth = 1;
+    for (let i = 0; i < positions.length; i++) {
+      const p1 = positions[i];
+      const x1 = cx + p1.x_km * scale;
+      const y1 = cy - p1.y_km * scale;
+      for (let j = i + 1; j < positions.length; j++) {
+        const p2 = positions[j];
+        const x2 = cx + p2.x_km * scale;
+        const y2 = cy - p2.y_km * scale;
+        const d = Math.hypot(p1.x_km - p2.x_km, p1.y_km - p2.y_km);
+        if (positions.length <= 10 || d <= (swarmData.mean_separation_km * 1.35)) {
+          ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+        }
+      }
+    }
+
+    // Spacecraft nodes
+    positions.forEach((p) => {
+      const px = cx + p.x_km * scale;
+      const py = cy - p.y_km * scale;
+      glow(ctx, px, py, 10, "rgba(255,194,75,0.4)");
+      ctx.fillStyle = "#ffc24b";
+      ctx.beginPath(); ctx.arc(px, py, 4, 0, 2 * Math.PI); ctx.fill();
+
+      // Satellite label
+      ctx.font = '10px "IBM Plex Sans", system-ui, sans-serif';
+      ctx.fillStyle = C.ink;
+      ctx.fillText(`S${p.id}`, px + 6, py - 4);
+    });
+  });
+
+  const PATTERN_NAMES = {
+    hexagonal: "Hexagonal Close-Packed Grid",
+    concentric: "Concentric Ring Array",
+    spiral: "Fermat Golden Spiral",
+    linear_rake: "Linear Pushbroom Rake",
+  };
+
+  const runSwarm = debounce(async () => {
+    const pat = $("sw-pattern").value;
+    const n = +$("sw-num").value;
+    const r = +$("sw-rad").value;
+    $("o-sw-num").textContent = n;
+    $("o-sw-rad").textContent = `${r.toFixed(1)} km`;
+    try {
+      swarmData = await api("/api/swarm_formation", {
+        pattern: pat,
+        num_satellites: n,
+        radius_km: r,
+      });
+      $("sw-pat-name").textContent = PATTERN_NAMES[pat] || pat;
+      $("sw-nsat").textContent = `${swarmData.num_satellites} craft`;
+      $("sw-bmax").textContent = `${num(swarmData.max_baseline_km, 2)} km`;
+      $("sw-dmean").textContent = `${num(swarmData.mean_separation_km, 2)} km`;
+      $("sw-dimg").textContent = `${num(r * 2, 1)} km`;
+      swarmScene.render();
+    } catch (e) { toast(`Swarm formation failed: ${e.message}`); }
+  }, 100);
+
+  ["sw-pattern", "sw-num", "sw-rad"].forEach((id) => $(id).addEventListener("input", runSwarm));
+
   // ------------------------------------------------------------------ tabs
   const tabs = [...document.querySelectorAll('[role="tab"]')];
   function selectTab(tab) {
@@ -759,6 +986,10 @@
       t.setAttribute("aria-selected", on);
       t.tabIndex = on ? 0 : -1;
       $(t.getAttribute("aria-controls")).hidden = !on;
+    }
+    if (tab.id === "tab-swarm") {
+      oberthScene.render();
+      swarmScene.render();
     }
   }
   tabs.forEach((t, i) => {
@@ -806,4 +1037,6 @@
   loadSky();
   loadRanking();
   evaluate();
+  runOberth();
+  runSwarm();
 })();

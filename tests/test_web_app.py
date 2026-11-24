@@ -20,6 +20,7 @@ def test_index_route(client):
     assert resp.status_code == 200
     assert b"sgl-sim" in resp.data
     assert b"Relativistic ray tracing" in resp.data
+    assert b"Swarm &amp; Oberth" in resp.data or b"Swarm & Oberth" in resp.data
     assert b"dashboard.js" in resp.data
 
 
@@ -98,3 +99,57 @@ def test_api_simulate_psf_samples_the_core(client):
     assert data["psf_core_m"] == pytest.approx(0.0491, rel=1e-2)
     assert data["psf_rho_m"][-1] == pytest.approx(8 * data["psf_core_m"])
     assert min(data["psf_j0_sq"]) < 1e-3  # first dark ring is inside the grid
+
+
+def test_api_solar_oberth_endpoint(client):
+    """Verify /api/solar_oberth endpoint computes accurate escape trajectories."""
+    # Test GET
+    resp_get = client.get("/api/solar_oberth?r_perihelion_au=0.05&delta_v_burn_km_s=5.0&target_z_rec_au=650.0")
+    assert resp_get.status_code == 200
+    data_get = resp_get.get_json()
+    assert data_get["status"] == "success"
+    assert "v_perihelion_km_s" in data_get
+    assert "v_inf_km_s" in data_get
+    assert data_get["v_inf_km_s"] > 40.0
+    assert "cruise_time_years" in data_get
+    assert 40.0 < data_get["cruise_time_years"] < 80.0
+
+    # Test POST
+    payload = {
+        "r_perihelion_au": 0.08,
+        "delta_v_burn_km_s": 8.0,
+        "target_z_rec_au": 700.0,
+        "mass_solar": 1.0,
+    }
+    resp_post = client.post("/api/solar_oberth", json=payload)
+    assert resp_post.status_code == 200
+    data_post = resp_post.get_json()
+    assert data_post["status"] == "success"
+    assert data_post["r_perihelion_au"] == 0.08
+
+
+def test_api_swarm_formation_endpoint(client):
+    """Verify /api/swarm_formation generates valid formation geometries."""
+    # Test GET
+    resp_get = client.get("/api/swarm_formation?pattern=hexagonal&num_satellites=7&radius_km=10.0")
+    assert resp_get.status_code == 200
+    data_get = resp_get.get_json()
+    assert data_get["status"] == "success"
+    assert data_get["pattern"] == "hexagonal"
+    assert len(data_get["positions"]) == 7
+    assert "max_baseline_km" in data_get
+    assert data_get["max_baseline_km"] > 0
+
+    # Test POST with spiral pattern
+    payload = {
+        "pattern": "spiral",
+        "num_satellites": 12,
+        "radius_km": 15.0,
+    }
+    resp_post = client.post("/api/swarm_formation", json=payload)
+    assert resp_post.status_code == 200
+    data_post = resp_post.get_json()
+    assert data_post["status"] == "success"
+    assert data_post["pattern"] == "spiral"
+    assert len(data_post["positions"]) == 12
+

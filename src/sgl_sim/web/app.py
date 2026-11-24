@@ -52,6 +52,8 @@ from sgl_sim.orbital import (
     image_cylinder_diameter,
     station_keeping_delta_v,
     isco_radius,
+    solar_oberth_trajectory,
+    generate_swarm_formation,
 )
 from sgl_sim.tradespace import evaluate_tradespace
 from sgl_sim.targets import (
@@ -456,6 +458,62 @@ def api_sky_efficiency():
         n_dec = int(request.args.get("n_dec", 36))
         data = generate_sky_efficiency_map(n_ra=n_ra, n_dec=n_dec)
         return jsonify({"status": "success", "data": data})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 400
+
+
+@app.route("/api/solar_oberth", methods=["GET", "POST"])
+def api_solar_oberth():
+    """Calculate high-speed heliocentric Solar Oberth escape trajectory."""
+    try:
+        if request.method == "POST":
+            data = request.get_json() or {}
+        else:
+            data = request.args
+
+        r_peri_au = float(data.get("r_perihelion_au", 0.05))
+        delta_v_km_s = float(data.get("delta_v_burn_km_s", 5.0))
+        z_rec_au = float(data.get("target_z_rec_au", 650.0))
+        mass_sol = float(data.get("mass_solar", 1.0))
+
+        r_peri_m = r_peri_au * AU_SI
+        delta_v_m_s = delta_v_km_s * 1000.0
+        z_rec_m = z_rec_au * AU_SI
+        mass_kg = mass_sol * M_SUN_SI
+
+        res = solar_oberth_trajectory(
+            r_perihelion=r_peri_m,
+            delta_v_burn=delta_v_m_s,
+            target_z_rec=z_rec_m,
+            mass=mass_kg,
+        )
+        out = {k: float(v) for k, v in res.items()}
+        out["status"] = "success"
+        return jsonify(out)
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 400
+
+
+@app.route("/api/swarm_formation", methods=["GET", "POST"])
+def api_swarm_formation():
+    """Generate satellite swarm transverse formation geometry and baselines."""
+    try:
+        if request.method == "POST":
+            data = request.get_json() or {}
+        else:
+            data = request.args
+
+        pattern = str(data.get("pattern", "hexagonal"))
+        num_satellites = int(data.get("num_satellites", 7))
+        radius_km = float(data.get("radius_km", 10.0))
+
+        res = generate_swarm_formation(
+            pattern=pattern,
+            num_satellites=num_satellites,
+            radius_km=radius_km,
+        )
+        res["status"] = "success"
+        return jsonify(res)
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 400
 

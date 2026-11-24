@@ -96,6 +96,7 @@
         <button role="tab" class="tab" id="tab-imaging" aria-controls="view-imaging" aria-selected="false" tabindex="-1">Imaging</button>
         <button role="tab" class="tab" id="tab-targets" aria-controls="view-targets" aria-selected="false" tabindex="-1">Targets</button>
         <button role="tab" class="tab" id="tab-triage" aria-controls="view-triage" aria-selected="false" tabindex="-1">Triage</button>
+        <button role="tab" class="tab" id="tab-swarm" aria-controls="view-swarm" aria-selected="false" tabindex="-1">Swarm & Oberth</button>
         <span class="busy" id="busy" aria-live="polite"></span>
       </nav>
 
@@ -266,6 +267,77 @@
               </tr></thead>
               <tbody id="rank-body"></tbody>
             </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Swarm & Oberth Astrodynamics -->
+      <section class="view" id="view-swarm" role="tabpanel" aria-labelledby="tab-swarm" hidden>
+        <div class="grid-2">
+          <!-- Solar Oberth Calculator & Orbit Visualizer -->
+          <div class="fig">
+            <header>
+              <h2>Solar Oberth Escape Trajectory</h2>
+              <p>High-energy heliocentric escape corridor to outer solar system focal line (650 AU)</p>
+            </header>
+            <div class="form-grid">
+              <div class="ctl span-2">
+                <label for="ob-peri">Perihelion distance <output id="o-ob-peri">0.050 AU (10.8 R☉)</output></label>
+                <input id="ob-peri" type="range" min="0.02" max="0.20" step="0.005" value="0.05">
+              </div>
+              <div class="ctl span-2">
+                <label for="ob-dv">Impulsive Δv burn at perihelion <output id="o-ob-dv">5.0 km/s</output></label>
+                <input id="ob-dv" type="range" min="1.0" max="15.0" step="0.5" value="5.0">
+              </div>
+              <div class="ctl span-2">
+                <label for="ob-z">Target focal distance <output id="o-ob-z">650 AU</output></label>
+                <input id="ob-z" type="range" min="550" max="1000" step="25" value="650">
+              </div>
+            </div>
+            <div class="plot"><canvas id="cv-oberth" aria-label="Solar Oberth trajectory visualizer"></canvas></div>
+            <dl class="kv">
+              <dt>Pre-burn perihelion speed (v_p)</dt><dd id="ob-vp">–</dd>
+              <dt>Post-burn speed (v_p + Δv)</dt><dd id="ob-vpost">–</dd>
+              <dt>Hyperbolic excess velocity (v_∞</dt><dd id="ob-vinf" class="em">–</dd>
+              <dt>Cruise speed (AU/year)</dt><dd id="ob-vau">–</dd>
+              <dt>Cruise duration to focal line</dt><dd id="ob-time" class="em">–</dd>
+              <dt>Oberth amplification factor</dt><dd id="ob-amp">–</dd>
+            </dl>
+          </div>
+
+          <!-- Swarm Formation Flying in Image Cylinder -->
+          <div class="fig">
+            <header>
+              <h2>Swarm Formation in Image Cylinder</h2>
+              <p>Transverse multi-spacecraft formation geometries across exoplanet image cylinder D_img</p>
+            </header>
+            <div class="form-grid">
+              <div class="field span-2">
+                <label for="sw-pattern">Formation Pattern</label>
+                <select id="sw-pattern">
+                  <option value="hexagonal">Hexagonal Close-Packed Grid</option>
+                  <option value="concentric">Concentric Ring Array</option>
+                  <option value="spiral">Fermat Golden Spiral</option>
+                  <option value="linear_rake">Linear Pushbroom Rake</option>
+                </select>
+              </div>
+              <div class="ctl span-2">
+                <label for="sw-num">Satellites in formation <output id="o-sw-num">7</output></label>
+                <input id="sw-num" type="range" min="1" max="24" step="1" value="7">
+              </div>
+              <div class="ctl span-2">
+                <label for="sw-rad">Formation / cylinder radius <output id="o-sw-rad">10.0 km</output></label>
+                <input id="sw-rad" type="range" min="1.0" max="50.0" step="1.0" value="10.0">
+              </div>
+            </div>
+            <div class="plot square"><canvas id="cv-swarm-formation" aria-label="Satellite swarm formation geometry"></canvas></div>
+            <dl class="kv">
+              <dt>Formation architecture</dt><dd id="sw-pat-name">–</dd>
+              <dt>Active spacecraft (N_sat)</dt><dd id="sw-nsat">–</dd>
+              <dt>Max baseline (B_max)</dt><dd id="sw-bmax" class="em">–</dd>
+              <dt>Mean inter-craft separation (d_mean)</dt><dd id="sw-dmean">–</dd>
+              <dt>Cylinder diameter (D_img)</dt><dd id="sw-dimg">–</dd>
+            </dl>
           </div>
         </div>
       </section>
